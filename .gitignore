@@ -8,6 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 out/*
+release/*
 .artifacts/*
 coverage/*
 node_modules

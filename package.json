@@ -1,7 +1,7 @@
 {
   "name": "llama-studio",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Runtime manager for llama.cpp — hardware detection, engine installs, model downloads, launch profiles, and benchmarks.",
   "author": "llama-studio",
   "main": "./out/main/index.js",
@@ -90,7 +90,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "build/icon.ico",
@@ -103,12 +105,16 @@
       "createStartMenuShortcut": true
     },
     "mac": {
-      "target": ["dmg"],
+      "target": [
+        "dmg"
+      ],
       "icon": "build/icon.png",
       "category": "public.app-category.developer-tools"
     },
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "icon": "build/icon.png",
       "category": "Development"
     }

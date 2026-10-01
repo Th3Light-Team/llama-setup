@@ -201,11 +201,6 @@ function SearchView({ onSelectModel, initialQuery = '' }: SearchViewProps) {
   const [error, setError] = useState<string | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
 
-  useEffect(() => {
-    if (initialQuery) doSearch(initialQuery, sort)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
   const doSearch = useCallback(async (q: string, s: string) => {
     setIsSearching(true)
     setError(null)
@@ -218,6 +213,12 @@ function SearchView({ onSelectModel, initialQuery = '' }: SearchViewProps) {
     } finally {
       setIsSearching(false)
     }
+  }, [])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial search on mount
+    if (initialQuery) doSearch(initialQuery, sort)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (

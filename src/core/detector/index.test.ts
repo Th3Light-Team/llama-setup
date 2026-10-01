@@ -5,7 +5,6 @@ import * as metalProbe from './probes/metal.probe'
 import * as vulkanProbe from './probes/vulkan.probe'
 import * as openclProbe from './probes/opencl.probe'
 import * as cpuProbe from './probes/cpu.probe'
-import * as systemProbe from './probes/system.probe'
 import os from 'os'
 
 vi.mock('os')

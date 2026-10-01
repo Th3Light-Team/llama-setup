@@ -11,8 +11,6 @@ import {
   expect,
   vi,
   beforeEach,
-  afterEach,
-  type MockInstance
 } from 'vitest'
 
 // ── Mock all heavy I/O before importing DownloadManager ─────────────────────
@@ -83,7 +81,7 @@ function freshManager(): DownloadManager {
 
 describe('DownloadManager singleton', () => {
   beforeEach(() => {
-    // @ts-expect-error
+    // @ts-expect-error – accessing private member in test
     DownloadManager.instance = null
   })
 
@@ -177,8 +175,8 @@ describe('cancel', () => {
 
   it('transitions queued → cancelled synchronously for a queued job', async () => {
     // Prevent the tick from starting the download by filling the slots
-    const blockId1 = mgr.enqueue({ kind: 'model', displayName: 'A', url: 'u1', targetPath: '/tmp/1.gguf' })
-    const blockId2 = mgr.enqueue({ kind: 'model', displayName: 'B', url: 'u2', targetPath: '/tmp/2.gguf' })
+    mgr.enqueue({ kind: 'model', displayName: 'A', url: 'u1', targetPath: '/tmp/1.gguf' })
+    mgr.enqueue({ kind: 'model', displayName: 'B', url: 'u2', targetPath: '/tmp/2.gguf' })
 
     // This third job should sit in queued (2 slots full)
     const cancelId = mgr.enqueue({ id: 'to-cancel', kind: 'model', displayName: 'C', url: 'u3', targetPath: '/tmp/3.gguf' })
@@ -467,7 +465,7 @@ describe('GGUF magic failure', () => {
 
 describe('concurrency', () => {
   it('runs at most 2 downloads in parallel', async () => {
-    // @ts-expect-error
+    // @ts-expect-error – accessing private member in test
     DownloadManager.instance = null
     let concurrent = 0
     let maxConcurrent = 0
@@ -522,7 +520,7 @@ describe('auditGgufFile wiring (Phase 2)', () => {
 
   it('calls auditGgufFile for model downloads after magic check passes', async () => {
     vi.mocked(auditorMod.auditGgufFile).mockResolvedValue({ valid: true, metadata: { version: 3, tensorCount: 1, kvCount: 1, architecture: 'llama', contextLength: 4096 } })
-    // @ts-expect-error
+    // @ts-expect-error – accessing private member in test
     DownloadManager.instance = null
     const mgr = DownloadManager.getInstance()
     mgr.init()
@@ -547,7 +545,7 @@ describe('auditGgufFile wiring (Phase 2)', () => {
 
   it('fails the job when auditGgufFile returns valid=false', async () => {
     vi.mocked(auditorMod.auditGgufFile).mockResolvedValue({ valid: false, error: 'Potential exploit: tensor_count exceeds maximum' })
-    // @ts-expect-error
+    // @ts-expect-error – accessing private member in test
     DownloadManager.instance = null
     const mgr = DownloadManager.getInstance()
     mgr.init()
@@ -574,7 +572,7 @@ describe('auditGgufFile wiring (Phase 2)', () => {
 
   it('does NOT call auditGgufFile for binary downloads', async () => {
     vi.mocked(auditorMod.auditGgufFile).mockClear()
-    // @ts-expect-error
+    // @ts-expect-error – accessing private member in test
     DownloadManager.instance = null
     const mgr = DownloadManager.getInstance()
     mgr.init()
@@ -599,7 +597,7 @@ describe('auditGgufFile wiring (Phase 2)', () => {
 
   it('writes an auditStamp into job.extra after a successful audit', async () => {
     vi.mocked(auditorMod.auditGgufFile).mockResolvedValue({ valid: true, metadata: { version: 3, tensorCount: 1, kvCount: 1, architecture: 'llama', contextLength: null } })
-    // @ts-expect-error
+    // @ts-expect-error – accessing private member in test
     DownloadManager.instance = null
     const mgr = DownloadManager.getInstance()
     mgr.init()

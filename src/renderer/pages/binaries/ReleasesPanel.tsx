@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import {
   humanizeTag, formatBytes, formatDownloads, timeAgo,
-  BACKEND_LABELS, BACKEND_COLORS
+  BACKEND_LABELS
 } from './helpers'
 import type { ReleaseWithAssets, ParsedAsset, InstallRecord } from '../../../core/binaries/types'
 import type { DetectionResult } from '../../../core/types'

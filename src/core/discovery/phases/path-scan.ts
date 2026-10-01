@@ -1,6 +1,5 @@
 import { existsSync, readdirSync, statSync, realpathSync } from 'fs'
-import { join, delimiter, basename } from 'path'
-import os from 'os'
+import { join, delimiter } from 'path'
 import { analyzeBinary, fastFingerprint, getBinaryNames } from '../health'
 import type { PhaseResult, DiscoveredInstall, BinaryIssue, BinaryName } from '../types'
 
@@ -168,7 +167,7 @@ function classifyBinaryName(filename: string): BinaryName {
 }
 
 /** Attempt to guess the backend from directory structure or filename context */
-function guessBackendFromPath(dir: string, _filename: string): DiscoveredInstall['backend'] {
+function guessBackendFromPath(dir: string): DiscoveredInstall['backend'] {
   const lowerDir = dir.toLowerCase()
   if (lowerDir.includes('cuda')) return 'cuda'
   if (lowerDir.includes('metal')) return 'metal'

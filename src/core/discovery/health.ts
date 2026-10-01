@@ -2,7 +2,7 @@ import { existsSync, statSync, readFileSync } from 'fs'
 import { createHash } from 'crypto'
 import os from 'os'
 import { runCommand } from '../detector/runner'
-import type { BinaryHealth, HealthCheck, VersionInfo, BinaryIssue } from './types'
+import type { BinaryHealth, HealthCheck, VersionInfo } from './types'
 
 /** Known binary filenames for llama.cpp */
 export const LLAMA_BINARY_NAMES_UNIX = [

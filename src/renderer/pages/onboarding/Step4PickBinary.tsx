@@ -41,6 +41,7 @@ export default function Step4PickBinary({ onNext, onSkip }: Props) {
   // Mark done when our job reaches 'done'
   useEffect(() => {
     if (downloadJob?.state === 'done') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reacts to external download job state transition
       setDone(true)
       setInstalling(false)
       fetchInstalled()

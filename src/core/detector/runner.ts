@@ -1,4 +1,4 @@
-import { execa, type ResultPromise } from 'execa'
+import { execa } from 'execa'
 
 interface CommandSuccess {
   ok: true

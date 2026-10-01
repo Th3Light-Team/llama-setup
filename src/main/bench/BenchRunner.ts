@@ -3,11 +3,11 @@ import { ChildProcess, spawn } from 'child_process'
 import { randomUUID } from 'crypto'
 import { basename } from 'path'
 
-import type { BenchJob, BenchSpec, BenchState } from '../../core/bench/types'
+import type { BenchJob, BenchSpec } from '../../core/bench/types'
 import { resolveLlamaBinary } from '../../core/launcher/binary-resolver'
 import { specToArgs } from '../../core/bench/defaults'
 import { parseBenchOutput } from '../../core/bench/parser'
-import { insertJob, updateJob, listJobs, getJob, deleteJob, pruneOldFinished } from './repo'
+import { insertJob, updateJob, listJobs, deleteJob, pruneOldFinished } from './repo'
 
 const HISTORY_RETENTION_DAYS = 30
 /** Cap individual job logs to keep DB rows small and renderer responsive. */

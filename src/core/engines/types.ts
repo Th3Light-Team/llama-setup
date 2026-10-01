@@ -65,7 +65,7 @@ export function bestHealth(healths: EngineHealth[]): EngineHealth {
 export function deriveDevices(backend: string, gpuNames: string[]): string[] {
   const b = (backend || '').toLowerCase()
   const has = (re: RegExp) => gpuNames.filter(n => re.test(n))
-  let devices: string[] = []
+  let devices: string[]
 
   if (b.startsWith('cuda')) {
     devices = has(/nvidia|geforce|rtx|gtx|tesla|quadro/i)

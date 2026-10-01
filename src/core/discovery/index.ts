@@ -57,8 +57,7 @@ export async function runDiscoveryScan(
   const {
     quickScan = false,
     checkPackageManagers = !quickScan,
-    checkRunningProcesses = !quickScan,
-    extraPaths = []
+    checkRunningProcesses = !quickScan
   } = options
 
   function elapsed(): number {

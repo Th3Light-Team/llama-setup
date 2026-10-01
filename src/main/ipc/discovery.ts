@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron'
 import { db } from '../db'
 import { runDiscoveryScan, verifyBinary } from '../../core/discovery'
-import type { InstallationScan, ScanOptions, BinaryHealth } from '../../core/discovery/types'
+import type { InstallationScan, ScanOptions } from '../../core/discovery/types'
 
 // TTL for discovery scan cache: 30 minutes
 const CACHE_TTL_MS = 30 * 60 * 1000
@@ -65,8 +65,8 @@ export function setupDiscoveryIPC() {
   ipcMain.handle('discovery:import', async (_, binaryPath: string, backend?: string) => {
     try {
       const { extractVersion, fastFingerprint } = await import('../../core/discovery/health')
-      const { existsSync, statSync } = await import('fs')
-      const { dirname, basename } = await import('path')
+      const { existsSync } = await import('fs')
+      const { dirname } = await import('path')
 
       if (!existsSync(binaryPath)) {
         throw new Error(`Binary not found at: ${binaryPath}`)

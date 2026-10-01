@@ -67,6 +67,7 @@ export default function Step5PickModel({ onNext, onSkip }: Props) {
   useEffect(() => {
     if (!downloading || !activeJob) return
     if (activeJob.state === 'done') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reacts to external download job state transition
       setDone(downloading)
       setDownloading(null)
     } else if (activeJob.state === 'failed' || activeJob.state === 'cancelled') {

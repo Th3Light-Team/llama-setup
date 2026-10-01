@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, statSync } from 'fs'
-import { join, basename } from 'path'
+import { join } from 'path'
 import os from 'os'
 import { analyzeBinary, fastFingerprint, getBinaryNames } from '../health'
 import type { PhaseResult, DiscoveredInstall, BinaryName } from '../types'

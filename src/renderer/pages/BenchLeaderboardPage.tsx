@@ -61,6 +61,7 @@ export default function BenchLeaderboardPage() {
   useEffect(() => {
     if (didInitModel.current || allRows.length === 0) return
     const top = mostBenchedModel(allRows)
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot default once async bench rows arrive (guarded by ref)
     if (top) { setModelFilter(top); didInitModel.current = true }
   }, [allRows])
 

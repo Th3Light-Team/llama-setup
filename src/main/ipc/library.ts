@@ -26,7 +26,7 @@ async function scanFolder(root: string, isDefault: boolean): Promise<LocalModel[
   if (!existsSync(root)) return []
 
   const models: LocalModel[] = []
-  let entries: string[] = []
+  let entries: string[]
   try { entries = await readdir(root) } catch { return [] }
 
   // First pass: GGUFs directly under the root (user-imported flat layout).
@@ -52,7 +52,7 @@ async function scanFolder(root: string, isDefault: boolean): Promise<LocalModel[
   // Second pass: <root>/<author--repo>/*.gguf
   for (const dir of entries) {
     const dirPath = join(root, dir)
-    let sub: string[] = []
+    let sub: string[]
     try {
       const s = await stat(dirPath)
       if (!s.isDirectory()) continue

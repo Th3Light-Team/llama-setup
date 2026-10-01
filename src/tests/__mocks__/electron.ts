@@ -4,7 +4,7 @@ export const BrowserWindow = {
 }
 
 export const app = {
-  getPath: (_: string) => '/tmp/llama-studio-test',
+  getPath: () => '/tmp/llama-studio-test',
   isReady: () => true
 }
 

@@ -34,7 +34,7 @@ import {
   backoffDelayMs
 } from './download-utils'
 
-import { verifyGGUFMagic, sha256OfFile, extractZipTo } from './verifiers'
+import { verifyGGUFMagic, extractZipTo } from './verifiers'
 import { auditGgufFile } from '../../core/security/gguf-auditor'
 
 const MAX_CONCURRENT = 2

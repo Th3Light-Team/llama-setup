@@ -76,6 +76,7 @@ export default function ModelLibraryPage() {
     }
   }
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data fetch on mount
   useEffect(() => { load() }, [])
 
   const visibleModels = useMemo(

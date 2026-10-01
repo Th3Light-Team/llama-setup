@@ -1,73 +1,82 @@
-# React + TypeScript + Vite
+# llama-studio
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A desktop runtime manager for [llama.cpp](https://github.com/ggml-org/llama.cpp).
+Detect your hardware, install the right llama.cpp build, download GGUF models,
+launch `llama-server` with saved profiles, and benchmark engines against each
+other — without hand-editing command lines.
 
-Currently, two official plugins are available:
+Built with Electron, React, TypeScript and SQLite.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Features
 
-## React Compiler
+- **Guided onboarding** — checks your system, finds existing llama.cpp installs,
+  picks a binary and a starter model.
+- **Hardware detection** — CPU, RAM and GPUs/VRAM, used to recommend a build.
+- **Engines** — install llama.cpp releases (CPU, CUDA, Vulkan, Metal, …),
+  discover builds already on your machine, and see their health and version.
+- **Model library & registry** — browse a curated list of GGUF models or search
+  Hugging Face, then download them with a queue, resume support and
+  hash verification.
+- **Launch profiles** — save `llama-server` flag sets and run/stop them from the UI.
+- **Bench** — compare engine × device × model results (e.g. CUDA vs Vulkan vs CPU)
+  on a leaderboard.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Install
 
-## Expanding the ESLint configuration
+Download the latest build from the
+[Releases page](https://github.com/Th3Light-Team/llama-setup/releases/latest).
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+| Platform | File | Notes |
+|---|---|---|
+| Windows (x64) | `llama-studio.Setup.<version>.exe` | The installer is not code-signed, so Windows SmartScreen may warn: choose *More info → Run anyway*. |
+| Linux (x64) | `llama-studio-<version>.AppImage` | `chmod +x llama-studio-*.AppImage && ./llama-studio-*.AppImage`. Needs FUSE 2; if it is missing, run with `--appimage-extract-and-run`. |
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+macOS is configured in `package.json` but is not built by the release workflow yet.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Build from source
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Requires Node.js 22+ and a toolchain able to compile native modules
+(`better-sqlite3`): build-essential/python3 on Linux, Visual Studio Build Tools on Windows.
+
+```bash
+git clone https://github.com/Th3Light-Team/llama-setup.git
+cd llama-setup
+npm ci
+npm run dev        # run the app in development mode
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Other scripts:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+| Command | What it does |
+|---|---|
+| `npm run build` | Compile main, preload and renderer into `out/` |
+| `npm run dist -- --linux` / `--win` | Package an installer into `release/` |
+| `npm test` | Run the Vitest suite |
+| `npm run lint` | Run ESLint |
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Releasing
+
+Pushing a tag that starts with `v` runs
+[`.github/workflows/release.yml`](.github/workflows/release.yml), which tests and
+builds the Windows and Linux packages and attaches them to a GitHub Release.
+
+```bash
+git tag v0.1.1 && git push origin v0.1.1
 ```
+
+## Project layout
+
+```
+src/main/       Electron main process (IPC, SQLite, downloads, bench runner)
+src/preload/    Context bridge between main and renderer
+src/renderer/   React UI (pages, components, Zustand stores)
+src/core/       Process-independent logic: detection, discovery, engines, binaries
+src/tests/      Vitest tests
+```
+
+Design notes live in [DOWNLOAD_SYSTEM_PLAN.md](DOWNLOAD_SYSTEM_PLAN.md) and
+[ENGINES_AND_BENCH_PLAN.md](ENGINES_AND_BENCH_PLAN.md).
+
+## License
+
+[MIT](LICENSE)

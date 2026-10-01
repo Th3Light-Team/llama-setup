@@ -1,5 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { db } from './__mocks__/db'
+import { describe, it, expect } from 'vitest'
 
 // Import after the mock DB is created — repo.ts will use the in-memory db
 import {

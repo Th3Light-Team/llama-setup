@@ -73,6 +73,7 @@ export default function LaunchPage() {
     const modelPath = searchParams.get('modelPath')
     if (!modelPath || !selectedProfile) return
     useLauncherStore.getState().setFlagValue('model', modelPath)
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- must re-apply URL model path after selectProfile() resets flags
     setLocalFlags(prev => ({ ...prev, model: modelPath }))
     setDirty(true)
     toast({

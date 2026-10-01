@@ -1,4 +1,4 @@
-import { existsSync, statSync, realpathSync } from 'fs'
+import { existsSync, statSync } from 'fs'
 import { join } from 'path'
 import { db } from '../../../main/db'
 import { analyzeBinary, fastFingerprint, getBinaryNames } from '../health'
@@ -18,7 +18,7 @@ export async function probeManagedInstalls(): Promise<PhaseResult> {
   const installations: DiscoveredInstall[] = []
   const issues: BinaryIssue[] = []
 
-  let rows: InstallRecord[] = []
+  let rows: InstallRecord[]
   try {
     const stmt = db.prepare('SELECT * FROM installs ORDER BY install_date DESC')
     rows = stmt.all() as InstallRecord[]

@@ -1,7 +1,7 @@
 /**
  * Tests for the TOCTOU launch guard (verifyAuditStamp).
  */
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { writeFile, unlink, utimes } from 'fs/promises'
 import { join } from 'path'
 import { tmpdir } from 'os'

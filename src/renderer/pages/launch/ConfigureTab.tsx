@@ -140,7 +140,7 @@ export function ConfigureTab({ flagValues, onFlagChange, onReset, onSave, dirty 
   return (
     <div className="flex h-full min-h-0">
       {/* Group nav */}
-      <div className="w-36 shrink-0 border-r border-border p-2 space-y-0.5">
+      <div data-tour="launch-flags" className="w-36 shrink-0 border-r border-border p-2 space-y-0.5">
         {Object.entries(GROUP_LABELS).map(([id, label]) => {
           const Icon = GROUP_ICONS[id] ?? Box
           const modCount = flagCatalog.filter(f =>

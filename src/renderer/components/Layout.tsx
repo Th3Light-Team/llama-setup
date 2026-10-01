@@ -5,12 +5,17 @@ import { DownloadsDrawer } from '@/components/DownloadsDrawer'
 import { BenchSidebar } from '@/components/BenchSidebar'
 import { useDownloadsStore } from '@/lib/stores/downloads'
 import { useBenchStore } from '@/lib/stores/bench'
+import { TourController } from '@/lib/tour/TourController'
+import { useTourPart } from '@/lib/tour/useTourPart'
 
 export default function Layout() {
   const initDownloads = useDownloadsStore(s => s.init)
   const toggleDownloadsDrawer = useDownloadsStore(s => s.toggleDrawer)
   const initBench = useBenchStore(s => s.init)
   const toggleBenchDrawer = useBenchStore(s => s.toggleDrawer)
+
+  // Part 1 (app shell). Starts once, wherever the user lands after onboarding.
+  useTourPart('welcome')
 
   useEffect(() => {
     let cleanupDownloads: (() => void) | undefined
@@ -43,6 +48,7 @@ export default function Layout() {
       </main>
       <DownloadsDrawer />
       <BenchSidebar />
+      <TourController />
     </div>
   )
 }

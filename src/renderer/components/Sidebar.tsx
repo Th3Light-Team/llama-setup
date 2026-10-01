@@ -5,6 +5,7 @@ import HardwareBadge from '@/components/HardwareBadge'
 import DiscoveryBadge from '@/components/DiscoveryBadge'
 import { DownloadIndicator } from '@/components/DownloadIndicator'
 import { BenchIndicator } from '@/components/BenchIndicator'
+import { TourHelpMenu } from '@/components/TourHelpMenu'
 import logoWordmark from '@/assets/brand/logo-wordmark.svg'
 
 const navItems = [
@@ -23,18 +24,20 @@ export default function Sidebar() {
 
   return (
     <div className="w-56 border-r border-sidebar-border h-screen bg-sidebar flex flex-col">
-      <div className="px-4 py-4 border-b border-sidebar-border">
+      <div data-tour="sidebar-brand" className="pl-4 pr-2 py-4 border-b border-sidebar-border flex items-center justify-between gap-2">
         <img
           src={logoWordmark}
           alt="llama-studio"
-          className="h-8 w-auto"
+          className="h-8 w-auto min-w-0 max-w-[8.5rem] object-cover object-left"
         />
+        <TourHelpMenu />
       </div>
-      <nav className="flex-1 p-3 space-y-0.5" aria-label="Main navigation">
+      <nav data-tour="sidebar-nav" className="flex-1 p-3 space-y-0.5" aria-label="Main navigation">
         {navItems.map((item) => (
           <Link
             key={item.path}
             to={item.path}
+            data-tour={`nav-${item.name.toLowerCase()}`}
             className={clsx(
               "flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors",
               location.pathname === item.path
@@ -47,11 +50,13 @@ export default function Sidebar() {
           </Link>
         ))}
       </nav>
-      <div className="p-3 border-t border-sidebar-border space-y-1.5">
+      <div data-tour="sidebar-status" className="p-3 border-t border-sidebar-border space-y-1.5">
         <DownloadIndicator />
         <BenchIndicator />
-        <HardwareBadge />
-        <DiscoveryBadge />
+        <div data-tour="sidebar-hw">
+          <HardwareBadge />
+          <DiscoveryBadge />
+        </div>
       </div>
     </div>
   )

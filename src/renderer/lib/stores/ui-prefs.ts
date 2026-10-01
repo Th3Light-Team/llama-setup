@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { INITIAL_TOUR_STATE, markPartDone, resetTourState } from '../tour/state'
 
 export type DensityMode = 'comfortable' | 'compact'
 export type ThemeMode = 'system' | 'light' | 'dark'
@@ -8,10 +9,18 @@ interface UiPrefsState {
   density: DensityMode
   theme: ThemeMode
   lastProfileId: string | null
+  /** Product tour: part ids already finished or closed (never auto-start again). */
+  tourCompleted: string[]
+  /** Product tour: when true no tour starts automatically. */
+  toursDisabled: boolean
 
   setDensity: (d: DensityMode) => void
   setTheme: (t: ThemeMode) => void
   setLastProfileId: (id: string | null) => void
+  completeTourPart: (id: string) => void
+  setToursDisabled: (disabled: boolean) => void
+  /** Forget all progress and re-enable automatic tours. */
+  resetTours: () => void
 }
 
 function applyTheme(theme: ThemeMode) {
@@ -36,6 +45,7 @@ export const useUiPrefsStore = create<UiPrefsState>()(
       density: 'comfortable',
       theme: 'system',
       lastProfileId: null,
+      ...INITIAL_TOUR_STATE,
 
       setDensity: (density) => {
         applyDensity(density)
@@ -48,6 +58,10 @@ export const useUiPrefsStore = create<UiPrefsState>()(
       },
 
       setLastProfileId: (id) => set({ lastProfileId: id }),
+
+      completeTourPart: (id) => set((s) => ({ tourCompleted: markPartDone(s.tourCompleted, id) })),
+      setToursDisabled: (toursDisabled) => set({ toursDisabled }),
+      resetTours: () => set(resetTourState()),
     }),
     { name: 'llama-studio-ui-prefs' }
   )

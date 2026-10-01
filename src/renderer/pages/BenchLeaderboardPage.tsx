@@ -10,6 +10,7 @@ import { useBenchStore } from '@/lib/stores/bench'
 import { cn } from '@/lib/utils'
 import { toLeaderboardRows, mostBenchedModel, type RankMetric, type LeaderboardRow } from '../../core/bench/leaderboard'
 import { BenchDetailsDialog } from '@/components/BenchDetailsDialog'
+import { useTourPart } from '@/lib/tour/useTourPart'
 
 const ALL = '__all__'
 
@@ -40,6 +41,7 @@ function Select({ value, onChange, options, label }: {
 
 export default function BenchLeaderboardPage() {
   const navigate = useNavigate()
+  useTourPart('bench')
   const jobsMap = useBenchStore(useShallow(s => s.jobs))
   const [rankBy, setRankBy] = useState<RankMetric>('tg')
   const [modelFilter, setModelFilter] = useState<string>(ALL)
@@ -89,12 +91,13 @@ export default function BenchLeaderboardPage() {
           title="Bench leaderboard"
           subtitle="Every run you've measured, ranked"
           actions={
-            <Button size="sm" className="gap-1.5 bg-brand text-brand-foreground hover:bg-brand/90" onClick={() => navigate('/library')}>
+            <Button data-tour="bench-new" size="sm" className="gap-1.5 bg-brand text-brand-foreground hover:bg-brand/90" onClick={() => navigate('/library')}>
               <Plus className="h-3.5 w-3.5" aria-hidden /> New bench
             </Button>
           }
         />
 
+        <div data-tour="bench-board">
         {allRows.length === 0 ? (
           <EmptyState
             icon={<Gauge className="h-6 w-6" aria-hidden />}
@@ -107,7 +110,7 @@ export default function BenchLeaderboardPage() {
         ) : (
           <>
             {/* Filters */}
-            <div className="flex items-center gap-3 flex-wrap mb-3">
+            <div data-tour="bench-filters" className="flex items-center gap-3 flex-wrap mb-3">
               <Select label="Model" value={modelFilter} onChange={setModelFilter}
                 options={[{ value: ALL, label: 'All' }, ...models.map(m => ({ value: m, label: m }))]} />
               <Select label="Engine" value={engineFilter} onChange={setEngineFilter}
@@ -160,6 +163,7 @@ export default function BenchLeaderboardPage() {
             </div>
           </>
         )}
+        </div>
       </div>
 
       <BenchDetailsDialog

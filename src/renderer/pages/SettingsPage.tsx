@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { MonoText } from '@/components/ui/mono-text'
 import { useUiPrefsStore, type DensityMode, type ThemeMode } from '@/lib/stores/ui-prefs'
 import { useToast } from '@/components/ui/toast'
+import { TourSettings } from '@/components/TourSettings'
 import { cn } from '@/lib/utils'
 
 type LicensePolicy = 'unrestricted' | 'standard' | 'strict'
@@ -282,6 +283,12 @@ export default function SettingsPage() {
             </button>
           </SettingRow>
         </div>
+      </section>
+
+      {/* Product tour */}
+      <section id="product-tour">
+        <SectionHeading title="Product tour" description="Short guided tours, one per page. Replay any of them whenever you like." />
+        <TourSettings />
       </section>
 
       {/* Advanced */}

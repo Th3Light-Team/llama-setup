@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
+import { useTourPart } from '@/lib/tour/useTourPart'
 import {
   Cpu, HardDrive, MemoryStick, Monitor, RefreshCw,
   CheckCircle2, AlertTriangle, HelpCircle,
@@ -26,6 +27,7 @@ function ConfidenceIcon({ confidence }: { confidence: string }) {
 
 export default function HardwarePage() {
   const { result, isLoading, error, detect } = useDetectorStore()
+  useTourPart('hardware')
 
   useEffect(() => {
     if (!result) detect()
@@ -59,7 +61,7 @@ export default function HardwarePage() {
   return (
     <div className="h-full overflow-y-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div data-tour="hw-header" className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Hardware Detection</h2>
           <p className="text-sm text-muted-foreground mt-1">
@@ -72,7 +74,7 @@ export default function HardwarePage() {
       </div>
 
       {/* Recommended Asset Banner */}
-      <Card className="p-4 border-dashed bg-muted/30">
+      <Card data-tour="hw-recommended" className="p-4 border-dashed bg-muted/30">
         <div className="flex items-center gap-3">
           <Zap className="w-5 h-5 text-yellow-500 shrink-0" />
           <div className="flex-1 min-w-0">
@@ -84,7 +86,7 @@ export default function HardwarePage() {
       </Card>
 
       {/* GPU / Backend Section */}
-      <section>
+      <section data-tour="hw-backends">
         <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
           <Monitor className="w-5 h-5" /> Compute Backends
         </h3>
@@ -122,7 +124,7 @@ export default function HardwarePage() {
 
       {/* GPU VRAM Table */}
       {vram && vram.gpus.length > 0 && (
-        <section>
+        <section data-tour="hw-vram">
           <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
             <Shield className="w-5 h-5" /> GPU Memory
           </h3>
@@ -207,7 +209,7 @@ export default function HardwarePage() {
           </section>
 
           {/* Memory Section */}
-          <section>
+          <section data-tour="hw-memory">
             <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
               <MemoryStick className="w-5 h-5" /> System Memory
             </h3>

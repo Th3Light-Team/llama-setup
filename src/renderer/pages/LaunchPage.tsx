@@ -11,6 +11,7 @@ import { RunTab } from './launch/RunTab'
 import { ConfigureTab } from './launch/ConfigureTab'
 import { DetailsTab } from './launch/DetailsTab'
 import { cn } from '@/lib/utils'
+import { useTourPart } from '@/lib/tour/useTourPart'
 import type { Profile, FlagValues } from '../../core/launcher/types'
 
 type Tab = 'run' | 'configure' | 'details'
@@ -37,6 +38,7 @@ export default function LaunchPage() {
   const { lastProfileId, setLastProfileId } = useUiPrefsStore()
   const { toast } = useToast()
   const [searchParams] = useSearchParams()
+  useTourPart('launch')
 
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null)
   const [localFlags, setLocalFlags] = useState<FlagValues>({})
@@ -149,7 +151,7 @@ export default function LaunchPage() {
       </div>
 
       {/* Profile strip */}
-      <div className="shrink-0 flex items-center gap-1 pb-3 overflow-x-auto scrollbar-none">
+      <div data-tour="launch-profiles" className="shrink-0 flex items-center gap-1 pb-3 overflow-x-auto scrollbar-none">
         {profiles.map(p => {
           const isActive = p.id === selectedProfile?.id
           const backendColor = BACKEND_COLOR[p.backend?.toLowerCase() ?? ''] ?? 'text-muted-foreground'
@@ -243,10 +245,11 @@ export default function LaunchPage() {
             </div>
 
             {/* Tab nav */}
-            <nav className="flex flex-col p-2 gap-0.5 flex-1">
+            <nav data-tour="launch-tabs" className="flex flex-col p-2 gap-0.5 flex-1">
               {TABS.map(tab => (
                 <button
                   key={tab.id}
+                  data-tour={`launch-tab-${tab.id}`}
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
                     'flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left',

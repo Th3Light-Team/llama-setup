@@ -26,13 +26,13 @@ const STARTERS: StarterModel[] = [
     url: 'https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-q4.gguf',
   },
   {
-    id: 'meta-llama/Llama-3.2-3B-Instruct-GGUF',
+    id: 'bartowski/Llama-3.2-3B-Instruct-GGUF',
     name: 'Llama 3.2 3B',
     quant: 'Q4_K_M',
     sizeMb: 2000,
     description: 'Meta\'s compact chat model',
     filename: 'Llama-3.2-3B-Instruct-Q4_K_M.gguf',
-    url: 'https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf',
+    url: 'https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf',
   },
   {
     id: 'Qwen/Qwen2.5-1.5B-Instruct-GGUF',

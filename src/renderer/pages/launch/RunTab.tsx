@@ -128,6 +128,7 @@ export function RunTab({ profile }: RunTabProps) {
             </Button>
           ) : (
             <Button
+              data-tour="launch-start"
               size="sm"
               onClick={handleStart}
               disabled={!installPath}
@@ -140,7 +141,7 @@ export function RunTab({ profile }: RunTabProps) {
       </div>
 
       {/* CLI preview */}
-      <div className="rounded-lg border border-border bg-muted/40 p-3 shrink-0">
+      <div data-tour="launch-cli" className="rounded-lg border border-border bg-muted/40 p-3 shrink-0">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">CLI Preview</span>
           <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleCopy} aria-label="Copy command">
@@ -153,7 +154,7 @@ export function RunTab({ profile }: RunTabProps) {
       </div>
 
       {/* Terminal */}
-      <div className="flex-1 flex flex-col min-h-0 rounded-lg border border-border overflow-hidden">
+      <div data-tour="launch-output" className="flex-1 flex flex-col min-h-0 rounded-lg border border-border overflow-hidden">
         <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30 shrink-0">
           <span className="text-xs font-semibold flex items-center gap-1.5">
             <Terminal className="h-3.5 w-3.5" aria-hidden /> Server output

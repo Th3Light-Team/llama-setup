@@ -15,6 +15,7 @@ import { DownloadConfirmDialog } from '@/components/DownloadConfirmDialog'
 import { preflightCheck } from '@/lib/preflight'
 import type { PreflightResult } from '@/components/DownloadConfirmDialog'
 import { cn } from '@/lib/utils'
+import { useTourPart } from '@/lib/tour/useTourPart'
 
 import { BestForYouCard } from './binaries/BestForYouCard'
 import { ReleasesPanel } from './binaries/ReleasesPanel'
@@ -49,6 +50,7 @@ export default function BinariesPage() {
   const downloadJobs = useDownloadsStore(s => s.jobs)
   const openDrawer = useDownloadsStore(s => s.openDrawer)
   const { addToast } = useToast()
+  useTourPart('binaries')
 
   const [showAllPlatforms, setShowAllPlatforms] = useState(false)
   const [browseOpen, setBrowseOpen] = useState(false)
@@ -204,11 +206,11 @@ export default function BinariesPage() {
         {/* Your engines */}
         <h2 className="text-sm font-semibold text-muted-foreground mt-6 mb-2">Your engines</h2>
         {engines.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+          <div data-tour="bin-engines" className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
             {enginesLoading ? 'Scanning for engines…' : 'No engines yet. Install one below to get started.'}
           </div>
         ) : (
-          <div className="space-y-2">
+          <div data-tour="bin-engines" className="space-y-2">
             {engines.map(engine => {
               const behind = engine.build != null && latestBuild != null ? latestBuild - engine.build : null
               const canUpdate = behind != null && behind > 0 && backendFamily(engine.backend) !== 'unknown'
@@ -230,6 +232,7 @@ export default function BinariesPage() {
         )}
 
         {/* Get a new build */}
+        <div data-tour="bin-get">
         <h2 className="text-sm font-semibold text-muted-foreground mt-7 mb-2">Get a new build</h2>
         {recommendedAsset && latestRelease && (
           <BestForYouCard
@@ -254,6 +257,7 @@ export default function BinariesPage() {
           {browseOpen ? <ChevronDown className="h-4 w-4" aria-hidden /> : <ChevronRight className="h-4 w-4" aria-hidden />}
           Browse all releases ({releases.length})
         </button>
+        </div>
         {browseOpen && (
           <div className="mt-2 h-[420px]">
             <div className="flex justify-end mb-2">
@@ -329,7 +333,7 @@ interface EngineCardProps {
 function EngineCard({ engine, behind, verifying, onSetDefault, onVerify, onUpdate, onImport, onUninstall }: EngineCardProps) {
   const size = fmtSize(engine.sizeBytes)
   return (
-    <div className={cn('rounded-lg border bg-card px-4 py-3', engine.isDefault ? 'border-2 border-brand' : 'border-border')}>
+    <div data-tour="bin-engine-card" className={cn('rounded-lg border bg-card px-4 py-3', engine.isDefault ? 'border-2 border-brand' : 'border-border')}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
@@ -360,7 +364,7 @@ function EngineCard({ engine, behind, verifying, onSetDefault, onVerify, onUpdat
           <p className="text-[10px] text-muted-foreground/70 font-mono truncate mt-1" title={engine.path}>{engine.path}</p>
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div data-tour="bin-engine-actions" className="flex items-center gap-1.5 shrink-0">
           {!engine.isDefault && engine.health !== 'broken' && (
             <Button variant="outline" size="sm" className="h-7 text-xs" onClick={onSetDefault}>Set default</Button>
           )}

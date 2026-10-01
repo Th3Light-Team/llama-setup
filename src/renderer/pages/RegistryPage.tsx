@@ -18,6 +18,7 @@ import { useDownloadsStore } from '@/lib/stores/downloads'
 import { DownloadConfirmDialog } from '@/components/DownloadConfirmDialog'
 import { preflightCheck } from '@/lib/preflight'
 import type { PreflightResult } from '@/components/DownloadConfirmDialog'
+import { useTourPart } from '@/lib/tour/useTourPart'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -96,7 +97,7 @@ function DetailView({ model, downloadProgress, onBack, onDownload, onCancelDownl
         </a>
       </div>
 
-      <Card className="flex-1 overflow-hidden flex flex-col min-h-0">
+      <Card data-tour="reg-variants" className="flex-1 overflow-hidden flex flex-col min-h-0">
         <div className="p-3 px-4 border-b bg-muted/30 shrink-0 flex items-center justify-between">
           <h3 className="text-sm font-semibold">GGUF variants ({model.variants.length})</h3>
           <span className="text-[10px] text-muted-foreground">Sorted by size · smallest first</span>
@@ -328,6 +329,7 @@ function SearchView({ onSelectModel, initialQuery = '' }: SearchViewProps) {
 
 export default function RegistryPage() {
   const { addToast } = useToast()
+  useTourPart('registry')
   const [mode, setMode] = useState<RegistryMode>('featured')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedModel, setSelectedModel] = useState<HfModelDetail | null>(null)
@@ -456,7 +458,7 @@ export default function RegistryPage() {
       />
 
       {/* Mode switcher — the primary navigation element */}
-      <div className="flex items-center gap-1 rounded-xl border border-border bg-muted/30 p-1 w-fit shrink-0" role="tablist" aria-label="Registry mode">
+      <div data-tour="reg-modes" className="flex items-center gap-1 rounded-xl border border-border bg-muted/30 p-1 w-fit shrink-0" role="tablist" aria-label="Registry mode">
         <button
           role="tab"
           aria-selected={mode === 'featured'}
@@ -488,7 +490,7 @@ export default function RegistryPage() {
       </div>
 
       {/* Panel */}
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <div data-tour="reg-panel" className="flex-1 min-h-0 overflow-y-auto">
         {mode === 'featured' ? (
           <FeaturedView
             onSelectModel={handleSelectModel}

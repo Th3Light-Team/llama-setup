@@ -1,0 +1,134 @@
+/*
+ * Product tour styling. Driver.js ships neutral defaults; everything here
+ * uses the app tokens from index.css so light/dark follow the theme.
+ * Loaded after `driver.js/dist/driver.css` (see manager.ts).
+ */
+
+.driver-popover.llama-tour {
+  font-family: var(--font-sans);
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 0.625rem);
+  box-shadow: 0 10px 30px -8px oklch(0 0 0 / 35%), 0 2px 8px oklch(0 0 0 / 12%);
+  min-width: 18rem;
+  max-width: 24rem;
+  padding: 1rem 1rem 0.875rem;
+}
+
+.driver-popover.llama-tour .driver-popover-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.005em;
+  padding-right: 1.75rem; /* room for the close button */
+  color: var(--foreground);
+}
+
+.driver-popover.llama-tour .driver-popover-description {
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--muted-foreground);
+  margin-top: 0.375rem;
+}
+
+.driver-popover.llama-tour .driver-popover-close-btn {
+  top: 0.625rem;
+  right: 0.625rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-sm, 0.375rem);
+  font-size: 1.125rem;
+  line-height: 1.5rem;
+  color: var(--muted-foreground);
+}
+.driver-popover.llama-tour .driver-popover-close-btn:hover,
+.driver-popover.llama-tour .driver-popover-close-btn:focus-visible {
+  color: var(--foreground);
+  background-color: var(--muted);
+}
+
+/* Footer: progress + skip on the left, buttons on the right; wraps when crowded. */
+.driver-popover.llama-tour .driver-popover-footer {
+  flex-wrap: wrap;
+  row-gap: 0.5rem;
+  column-gap: 0.75rem;
+  margin-top: 0.875rem;
+}
+
+.driver-popover.llama-tour .driver-popover-progress-text {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-foreground);
+}
+
+.llama-tour-skip {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  border-radius: var(--radius-sm, 0.375rem);
+  padding: 0.125rem 0.25rem;
+  margin-right: auto;
+}
+.llama-tour-skip:hover { color: var(--foreground); }
+
+.driver-popover.llama-tour .driver-popover-navigation-btns {
+  flex-grow: 0;
+  gap: 0.375rem;
+}
+.driver-popover.llama-tour .driver-popover-navigation-btns button + button { margin-left: 0; }
+
+.driver-popover.llama-tour .driver-popover-footer-btn {
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1;
+  padding: 0.4375rem 0.75rem;
+  border-radius: var(--radius-md, 0.5rem);
+  border: 1px solid var(--border);
+  background-color: var(--background);
+  color: var(--foreground);
+  text-shadow: none;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+.driver-popover.llama-tour .driver-popover-footer-btn:hover {
+  background-color: var(--muted);
+}
+
+/* Primary action (Next / Done / Next: <part>) uses the brand accent. */
+.driver-popover.llama-tour .driver-popover-next-btn {
+  background-color: var(--accent-brand);
+  border-color: var(--accent-brand);
+  color: var(--accent-brand-foreground);
+}
+.driver-popover.llama-tour .driver-popover-next-btn:hover {
+  background-color: var(--accent-brand);
+  filter: brightness(0.96);
+}
+
+/* Visible keyboard focus on every control. */
+.driver-popover.llama-tour button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.driver-popover.llama-tour .driver-popover-btn-disabled { opacity: 0.4; }
+
+/* Arrow follows the popover surface, with the border colour behind it. */
+.driver-popover.llama-tour .driver-popover-arrow-side-left   { border-left-color: var(--popover); }
+.driver-popover.llama-tour .driver-popover-arrow-side-right  { border-right-color: var(--popover); }
+.driver-popover.llama-tour .driver-popover-arrow-side-top    { border-top-color: var(--popover); }
+.driver-popover.llama-tour .driver-popover-arrow-side-bottom { border-bottom-color: var(--popover); }
+
+@media (prefers-reduced-motion: reduce) {
+  .driver-fade .driver-overlay,
+  .driver-fade .driver-popover,
+  .driver-popover.llama-tour .driver-popover-footer-btn {
+    animation: none !important;
+    transition: none !important;
+  }
+}

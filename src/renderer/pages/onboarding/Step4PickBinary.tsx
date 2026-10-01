@@ -5,6 +5,7 @@ import { ProgressCard } from '@/components/ui/progress-card'
 import { Badge } from '@/components/ui/badge'
 import { useDetectorStore, useBinariesStore } from '@/lib/stores'
 import { useDownloadsStore } from '@/lib/stores/downloads'
+import { findRecommendedBackendId, pickBestAsset } from '../../../core/binaries/select'
 
 interface Props { onNext: () => void; onSkip: () => void; onFinish: () => void }
 
@@ -20,15 +21,10 @@ export default function Step4PickBinary({ onNext, onSkip }: Props) {
     fetchInstalled()
   }, [])
 
-  const recommended = hw?.backends?.find(b => hw.recommendedAsset.toLowerCase().includes(b.id))
+  const recommendedId = findRecommendedBackendId(hw)
   const latest = releases[0]
   // Only consider assets built for this machine's OS and CPU architecture.
-  const hostAssets = (latest?.assets ?? []).filter(a =>
-    (!hw?.os || a.os === hw.os) && (!hw?.arch || a.arch === hw.arch)
-  )
-  const bestAsset = hostAssets.find(a =>
-    recommended ? a.backend.toLowerCase().includes(recommended.id.toLowerCase()) : a.backend === 'cpu'
-  ) ?? hostAssets.find(a => a.backend === 'cpu') ?? hostAssets[0]
+  const bestAsset = pickBestAsset(latest?.assets ?? [], hw, recommendedId)
 
   const installId = bestAsset && latest ? `${latest.tag}-${bestAsset.backend}-${bestAsset.arch}` : null
   const downloadJob = installId

@@ -11,6 +11,7 @@ import {
   expect,
   vi,
   beforeEach,
+  afterEach,
 } from 'vitest'
 
 // ── Mock all heavy I/O before importing DownloadManager ─────────────────────
@@ -53,6 +54,7 @@ import { DownloadManager } from '../main/downloads/DownloadManager'
 import * as utils from '../main/downloads/download-utils'
 import * as verifiers from '../main/downloads/verifiers'
 import * as auditorMod from '../core/security/gguf-auditor'
+import * as fsp from 'fs/promises'
 import { createHash } from 'crypto'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -624,5 +626,97 @@ describe('auditGgufFile wiring (Phase 2)', () => {
     expect(typeof extra.auditStamp.size).toBe('number')
     expect(typeof extra.auditStamp.mtimeMs).toBe('number')
     expect(typeof extra.auditStamp.ino).toBe('number')
+  })
+})
+
+// ─── HTTP 416 recovery (complete .part left behind by a failed later step) ────
+
+describe('HTTP 416 on resume', () => {
+  const TARGET = '/tmp/llama-416/model.gguf'
+  const PART = `${TARGET}.part`
+  const META = `${TARGET}.part.json`
+  let partOnDisk: boolean
+
+  async function waitFor(mgr: DownloadManager, id: string, states: string[]): Promise<void> {
+    const start = Date.now()
+    while (Date.now() - start < 5000) {
+      if (states.includes(mgr.getJob(id)?.state ?? '')) return
+      await new Promise(r => setTimeout(r, 10))
+    }
+    throw new Error(`timed out; state=${mgr.getJob(id)?.state}`)
+  }
+
+  beforeEach(() => {
+    partOnDisk = true
+    vi.mocked(utils.partExistingBytes).mockImplementation(() => (partOnDisk ? 1024 : 0))
+    vi.mocked(utils.readPartMeta).mockImplementation(async () =>
+      partOnDisk ? { url: 'u', etag: null, bytesDone: 1024, sha256Partial: null } : null
+    )
+    vi.mocked(utils.hashFromFile).mockResolvedValue(createHash('sha256') as any)
+    vi.mocked(utils.deletePartMeta).mockClear()
+    vi.mocked(utils.backoffDelayMs).mockImplementation(() => 5)
+    vi.mocked(fsp.unlink).mockClear()
+    vi.mocked(fsp.unlink).mockImplementation(async (path: any) => {
+      if (String(path) === PART) partOnDisk = false
+    })
+    vi.mocked(verifiers.verifyGGUFMagic).mockResolvedValue(true)
+    vi.mocked(auditorMod.auditGgufFile).mockResolvedValue({ valid: true, metadata: { version: 3, tensorCount: 1, kvCount: 1, architecture: 'llama', contextLength: 4096 } })
+  })
+
+  afterEach(() => {
+    vi.mocked(utils.partExistingBytes).mockReset().mockReturnValue(0)
+    vi.mocked(utils.readPartMeta).mockReset().mockResolvedValue(null)
+    vi.mocked(utils.hashFromFile).mockReset()
+    vi.mocked(utils.backoffDelayMs).mockReset().mockImplementation(
+      (attempt: number) => (attempt >= 6 ? null : Math.pow(2, attempt - 1) * 1000)
+    )
+    vi.mocked(fsp.unlink).mockReset().mockResolvedValue(undefined)
+  })
+
+  function spec() {
+    return { kind: 'model' as const, displayName: 'Resumed', url: 'https://example.com/m.gguf', targetPath: TARGET }
+  }
+
+  it('deletes the .part and its meta, then retries from byte 0', async () => {
+    const calls: Array<{ fromByte: number }> = []
+    vi.mocked(utils.streamToPart).mockImplementation(async (opts: any) => {
+      calls.push({ fromByte: opts.fromByte })
+      if (calls.length === 1) throw new Error('HTTP 416 Range Not Satisfiable')
+      opts.onProgress(512, 512)
+      return makeStreamResult(512) as any
+    })
+
+    const mgr = freshManager()
+    const id = mgr.enqueue(spec())
+    await waitFor(mgr, id, ['done', 'failed'])
+
+    // first attempt tried to resume from the stale partial, second restarted
+    expect(calls).toEqual([{ fromByte: 1024 }, { fromByte: 0 }])
+    expect(vi.mocked(fsp.unlink)).toHaveBeenCalledWith(PART)
+    expect(vi.mocked(utils.deletePartMeta)).toHaveBeenCalledWith(META)
+    expect(mgr.getJob(id)?.state).toBe('done')
+    expect(mgr.getJob(id)?.attempts).toBe(1)
+  })
+
+  it('records the 416 message when it is the final attempt (job fails, part already wiped)', async () => {
+    vi.mocked(utils.streamToPart).mockRejectedValue(new Error('HTTP 416 Range Not Satisfiable'))
+    const mgr = freshManager()
+    const id = mgr.enqueue({ ...spec(), maxAttempts: 1 })
+    await waitFor(mgr, id, ['failed'])
+
+    expect(mgr.getJob(id)?.errorMessage).toMatch(/^HTTP 416/)
+    expect(partOnDisk).toBe(false)
+    expect(vi.mocked(utils.deletePartMeta)).toHaveBeenCalledWith(META)
+  })
+
+  it('keeps the .part for other HTTP errors so they can resume', async () => {
+    vi.mocked(utils.streamToPart).mockRejectedValue(new Error('HTTP 503 Service Unavailable'))
+    const mgr = freshManager()
+    const id = mgr.enqueue({ ...spec(), maxAttempts: 1 })
+    await waitFor(mgr, id, ['failed'])
+
+    expect(partOnDisk).toBe(true)
+    expect(vi.mocked(fsp.unlink)).not.toHaveBeenCalledWith(PART)
+    expect(vi.mocked(utils.deletePartMeta)).not.toHaveBeenCalled()
   })
 })

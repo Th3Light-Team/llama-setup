@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { getCudaSuffix } from './probes/cuda.probe'
 import { selectAsset } from './asset-selector'
 import { BackendResult } from '../types'
+import { findRecommendedBackendId } from '../binaries/select'
 
 describe('CUDA Driver Version Mapping', () => {
   it('maps driver >= 550 to cu12.4', () => {
@@ -24,6 +25,11 @@ describe('CUDA Driver Version Mapping', () => {
     expect(getCudaSuffix('390.10')).toBe('')
   })
 
+  it('maps newer drivers: >= 570 -> cu12.8, >= 580 -> cu13.4', () => {
+    expect(getCudaSuffix('570.86')).toBe('cuda-cu12.8')
+    expect(getCudaSuffix('581.15')).toBe('cuda-cu13.4')
+  })
+
   it('defaults to cu12.4 for unparseable version', () => {
     expect(getCudaSuffix('unknown')).toBe('cuda-cu12.4')
     expect(getCudaSuffix('')).toBe('cuda-cu12.4')
@@ -41,7 +47,8 @@ describe('Asset Selector', () => {
       makeBackend('cpu', true)
     ]
     const result = selectAsset('windows', 'x64', backends)
-    expect(result).toContain('cuda-cu12.4')
+    expect(result).toBe('win-cuda-12.4-x64.zip') // real release naming: "cuda-12.4", not "cuda-cu12.4"
+    expect(findRecommendedBackendId({ backends, recommendedAsset: result })).toBe('cuda')
   })
 
   it('prefers CUDA over Vulkan when both available', () => {
@@ -95,5 +102,29 @@ describe('Asset Selector', () => {
     ]
     const result = selectAsset('linux', 'x64', backends)
     expect(result).toContain('vulkan')
+  })
+
+  it('recommends the newest toolkit the driver supports (570 -> 12.8, 580 -> 13.4)', () => {
+    const rec = (driver: string) => selectAsset('linux', 'x64', [makeBackend('cuda', true, driver), makeBackend('cpu', true)])
+    expect(rec('570.86')).toContain('cuda-12.8')
+    expect(rec('580.65')).toContain('cuda-13.4')
+  })
+
+  it('reads an nvcc toolkit version ("12.4") as a toolkit, not as an ancient driver', () => {
+    const backends = [makeBackend('cuda', true, '12.4'), makeBackend('cpu', true)]
+    expect(selectAsset('windows', 'x64', backends)).toBe('win-cuda-12.4-x64.zip')
+  })
+
+  it('matches the real asset list for current names (cuda-12.4 / cuda-12.8)', () => {
+    const assets = [
+      'llama-b11312-bin-win-cpu-x64.zip',
+      'llama-b11312-bin-win-cuda-12.4-x64.zip',
+      'llama-b11312-bin-win-cuda-13.4-x64.zip',
+      'llama-b11312-bin-ubuntu-cuda-12.8-x64.tar.gz'
+    ]
+    expect(selectAsset('windows', 'x64', [makeBackend('cuda', true, '551.61'), makeBackend('cpu', true)], assets))
+      .toBe('llama-b11312-bin-win-cuda-12.4-x64.zip')
+    expect(selectAsset('linux', 'x64', [makeBackend('cuda', true, '570.10'), makeBackend('cpu', true)], assets))
+      .toBe('llama-b11312-bin-ubuntu-cuda-12.8-x64.tar.gz')
   })
 })

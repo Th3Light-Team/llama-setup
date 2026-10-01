@@ -5,7 +5,8 @@ import { ProgressCard } from '@/components/ui/progress-card'
 import { Badge } from '@/components/ui/badge'
 import { useDetectorStore, useBinariesStore } from '@/lib/stores'
 import { useDownloadsStore } from '@/lib/stores/downloads'
-import { findRecommendedBackendId, pickBestAsset } from '../../../core/binaries/select'
+import { cudaMaxForHardware, findRecommendedBackendId, findRuntimeFor, pickBestAsset } from '../../../core/binaries/select'
+import { installProgressFor } from '@/lib/install-progress'
 
 interface Props { onNext: () => void; onSkip: () => void; onFinish: () => void }
 
@@ -24,31 +25,28 @@ export default function Step4PickBinary({ onNext, onSkip }: Props) {
   const recommendedId = findRecommendedBackendId(hw)
   const latest = releases[0]
   // Only consider assets built for this machine's OS and CPU architecture.
-  const bestAsset = pickBestAsset(latest?.assets ?? [], hw, recommendedId)
+  const bestAsset = pickBestAsset(latest?.assets ?? [], hw, recommendedId, { cudaMax: cudaMaxForHardware(hw) })
+  const runtimeAsset = latest && bestAsset ? findRuntimeFor(latest.runtimes, bestAsset) : undefined
 
   const installId = bestAsset && latest ? `${latest.tag}-${bestAsset.backend}-${bestAsset.arch}` : null
-  const downloadJob = installId
-    ? Object.values(downloadJobs).find(j => {
-        const e = j.extra as { installId?: string } | null
-        return e?.installId === installId
-      })
-    : undefined
-  const progress = downloadJob && downloadJob.bytesTotal && downloadJob.bytesTotal > 0
-    ? Math.round((downloadJob.bytesDone / downloadJob.bytesTotal) * 100)
-    : (downloadJob?.state === 'done' ? 100 : null)
+  const install_ = installId ? installProgressFor(downloadJobs, installId) : undefined
+  const progress = install_ ? install_.percent : null
   const alreadyInstalled = installed.length > 0
 
-  // Mark done when our job reaches 'done'
+  // Mark done when every part of the install (engine + CUDA runtime) is done
   useEffect(() => {
-    if (downloadJob?.state === 'done') {
+    if (install_?.state === 'done') {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- reacts to external download job state transition
       setDone(true)
       setInstalling(false)
       fetchInstalled()
-    } else if (downloadJob?.state === 'failed' || downloadJob?.state === 'cancelled') {
+    } else if (install_?.state === 'failed') {
       setInstalling(false)
     }
-  }, [downloadJob?.state, fetchInstalled])
+  }, [install_?.state, fetchInstalled])
+
+  // Re-read installs once the main process has fully registered the engine
+  useEffect(() => window.electron.binaries.onChanged(() => { fetchInstalled() }), [fetchInstalled])
 
   async function handleInstall() {
     if (!latest || !bestAsset) return
@@ -87,15 +85,21 @@ export default function Step4PickBinary({ onNext, onSkip }: Props) {
                 <Badge variant="outline">{bestAsset.arch}</Badge>
               </div>
             </div>
-            {downloadJob?.state === 'failed' && (
+            {runtimeAsset && !installing && !done && (
+              <p className="text-xs text-muted-foreground">
+                NVIDIA GPU build: also downloads the CUDA runtime
+                ({Math.round(runtimeAsset.size / 1048576)} MB extra) unless a matching CUDA toolkit is already installed.
+              </p>
+            )}
+            {install_?.state === 'failed' && (
               <p className="text-sm text-destructive">
-                Install failed: {downloadJob.errorMessage ?? 'unknown error'}
+                Install failed: {install_.error ?? 'unknown error'}
               </p>
             )}
             {installing || done ? (
               <ProgressCard
                 title={`Installing llama.cpp ${latest.tag}`}
-                subtitle={`${bestAsset.backend} · ${bestAsset.arch}`}
+                subtitle={`${bestAsset.backend} · ${bestAsset.arch}${install_?.hasRuntime ? ' · + CUDA runtime' : ''}`}
                 percent={progress ?? 0}
                 state={done ? 'done' : 'active'}
               />

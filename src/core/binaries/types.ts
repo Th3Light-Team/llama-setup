@@ -44,4 +44,6 @@ export interface ReleaseWithAssets {
   totalAssets: number
   totalDownloads: number
   assets: ParsedAsset[]
+  /** CUDA runtime bundles (cudart-*) published with this release */
+  runtimes: ParsedAsset[]
 }

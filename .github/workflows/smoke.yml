@@ -44,3 +44,27 @@ jobs:
           name: smoke-artifacts
           path: smoke-artifacts/
           if-no-files-found: ignore
+
+  # Installs a CUDA engine + its cudart bundle through the app (~0.7 GB; no GPU needed).
+  # Not run on every push: weekly and on demand, to catch upstream asset-naming drift.
+  cuda-runtime-linux:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Install Xvfb
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
+      - name: CUDA runtime install smoke test
+        run: xvfb-run -a --server-args="-screen 0 1280x900x24" node scripts/smoke/cuda-runtime.mjs

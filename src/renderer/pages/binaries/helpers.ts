@@ -59,6 +59,20 @@ export const BACKEND_LABELS: Record<string, { label: string; icon: 'gpu' | 'cpu'
   'cpu':            { label: 'CPU Only',                icon: 'cpu' },
 }
 
+/** Label/colour lookups that understand any CUDA toolkit version ("cuda-cu12.8", "cuda-cu13.4", …). */
+export function backendMeta(backend: string): { label: string; icon: 'gpu' | 'cpu' } {
+  const known = BACKEND_LABELS[backend]
+  if (known) return known
+  const m = backend.match(/^cuda-cu(\d+(?:\.\d+)?)$/)
+  if (m) return { label: `NVIDIA GPU (CUDA ${m[1]})`, icon: 'gpu' }
+  return { label: backend, icon: 'cpu' }
+}
+
+export function backendColor(backend: string): string {
+  return BACKEND_COLORS[backend]
+    ?? (backend.startsWith('cuda') ? BACKEND_COLORS['cuda-cu12.4'] : BACKEND_COLORS['cpu'])
+}
+
 export const BACKEND_COLORS: Record<string, string> = {
   'cuda-cu13.1': 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20',
   'cuda-cu12.4': 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20',

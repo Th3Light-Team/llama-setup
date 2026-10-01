@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Loader2, HardDrive, Package, Clock, Trash2, ArrowUp } from 'lucide-react'
-import { humanizeTag, buildsBehind, BACKEND_LABELS, BACKEND_COLORS } from './helpers'
+import { humanizeTag, buildsBehind, backendMeta, backendColor } from './helpers'
 import type { InstallRecord } from '../../../core/binaries/types'
 
 interface Props {
@@ -39,8 +39,8 @@ export function InstalledPanel({ installed, isLoading, latestTag, onUninstall }:
           </div>
         ) : (
           installed.map(inst => {
-            const colorClass = BACKEND_COLORS[inst.backend] || BACKEND_COLORS['cpu']
-            const meta = BACKEND_LABELS[inst.backend] || { label: inst.backend, icon: 'cpu' as const }
+            const colorClass = backendColor(inst.backend)
+            const meta = backendMeta(inst.backend)
             const behind = buildsBehind(inst.tag, latestTag)
             const hasUpdate = behind !== null && behind > 0
 

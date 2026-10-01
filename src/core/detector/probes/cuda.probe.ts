@@ -1,18 +1,25 @@
 import { BackendResult, GPUInfo } from '../../types'
 import { runCommand, resolveNvidiaSmiPath, runCommandWithFallbackPaths } from '../runner'
+import { DEFAULT_CUDA_BACKEND } from '../../binaries/cuda'
 
 export interface CudaProbeResult {
   backend: BackendResult
   gpus: GPUInfo[]
 }
 
-/** CUDA driver version → toolkit mapping from DETECTOR.md */
+/**
+ * CUDA driver version → newest toolkit build it can run, as a backend id
+ * (see maxToolkitForDriver). Empty string when the driver is too old.
+ * Unparseable versions default to the widely compatible cu12.4 build.
+ */
 export function getCudaSuffix(driverVersion: string): string {
   const major = parseInt(driverVersion.split('.')[0], 10)
-  if (isNaN(major)) return 'cuda-cu12.4' // default to latest if unparseable
+  if (isNaN(major)) return DEFAULT_CUDA_BACKEND
 
+  if (major >= 580) return 'cuda-cu13.4'
+  if (major >= 570) return 'cuda-cu12.8'
   if (major >= 550) return 'cuda-cu12.4'
-  if (major >= 520) return 'cuda-cu12.0'
+  if (major >= 525) return 'cuda-cu12.0'
   if (major >= 470) return 'cuda-cu11'
   return '' // unsupported
 }

@@ -9,8 +9,9 @@ import {
 } from 'lucide-react'
 import {
   humanizeTag, formatBytes, formatDownloads, timeAgo,
-  BACKEND_LABELS
+  backendMeta
 } from './helpers'
+import { cudaMaxForHardware, findRecommendedBackendId, pickBestAsset } from '../../../core/binaries/select'
 import type { ReleaseWithAssets, ParsedAsset, InstallRecord } from '../../../core/binaries/types'
 import type { DetectionResult } from '../../../core/types'
 
@@ -44,6 +45,14 @@ export function ReleasesPanel({
       ? r.assets
       : r.assets.filter(a => a.os === hostOs && a.arch === hostArch)
   }))
+
+  // The single best asset per release for this machine (not just any asset naming the backend).
+  const bestByRelease = new Map(
+    releases.map(r => [
+      r.tag,
+      pickBestAsset(r.assets, hardwareResult, findRecommendedBackendId(hardwareResult), { cudaMax: cudaMaxForHardware(hardwareResult) })
+    ])
+  )
 
   return (
     <section className="flex flex-col min-h-0 border rounded-lg bg-muted/20">
@@ -120,8 +129,8 @@ export function ReleasesPanel({
                             const isInstalled = installed.some(i => i.id === installId)
                             const progress = installProgress[installId]
                             const isInstalling = progress !== undefined
-                            const isRecommended = hardwareResult?.recommendedAsset.includes(asset.backend)
-                            const meta = BACKEND_LABELS[asset.backend] || { label: asset.backend, icon: 'cpu' as const }
+                            const isRecommended = bestByRelease.get(release.tag)?.url === asset.url
+                            const meta = backendMeta(asset.backend)
 
                             return (
                               <div key={asset.url} className="p-3 px-4 flex items-center gap-3 hover:bg-muted/20 transition-colors">

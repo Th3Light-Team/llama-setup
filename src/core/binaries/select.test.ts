@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { pickBestAsset, findRecommendedBackendId } from './select'
-import { parseAsset } from './github'
+import { pickBestAsset, findRecommendedBackendId, cudaMaxForHardware, findRuntimeFor } from './select'
+import { parseAsset, parseRuntimeAsset } from './github'
 import type { ParsedAsset } from './types'
 import type { BackendResult } from '../types'
 
@@ -113,7 +113,7 @@ describe('findRecommendedBackendId', () => {
 
   it('extracts the backend named in the recommended asset', () => {
     expect(findRecommendedBackendId({ backends, recommendedAsset: 'ubuntu-vulkan-x64.zip' })).toBe('vulkan')
-    expect(findRecommendedBackendId({ backends, recommendedAsset: 'Win-CUDA-12.4-x64.zip' })).toBe('cuda-cu12.4')
+    expect(findRecommendedBackendId({ backends, recommendedAsset: 'Win-CUDA-12.4-x64.zip' })).toBe('cuda')
   })
 
   it('returns undefined for a generic CPU recommendation', () => {
@@ -126,40 +126,81 @@ describe('findRecommendedBackendId', () => {
   })
 })
 
-describe('CUDA toolkit version matching (driver compatibility)', () => {
-  // Listed newest-first, like the real releases: a naive "first CUDA asset" picks cu13.1.
+describe('CUDA build selection by driver (regression: first CUDA asset / cuda-12.8 read as cpu)', () => {
+  // Names as published by llama.cpp b11312, newest toolkit first like the release listing.
   const CUDA_RELEASE: ParsedAsset[] = [
-    'llama-b1-bin-win-cuda-13.1-x64.zip',
+    'llama-b1-bin-win-cuda-13.4-x64.zip',
     'llama-b1-bin-win-cuda-12.4-x64.zip',
     'llama-b1-bin-win-vulkan-x64.zip',
-    'llama-b1-bin-win-cpu-x64.zip'
+    'llama-b1-bin-win-cpu-x64.zip',
+    'llama-b1-bin-ubuntu-cuda-13.4-x64.tar.gz',
+    'llama-b1-bin-ubuntu-cuda-12.8-x64.tar.gz',
+    'llama-b1-bin-ubuntu-x64.tar.gz'
   ].map(mk)
   const win = { os: 'windows', arch: 'x64' } as const
-  const cudaBackends = [backend('cuda'), backend('cpu')]
-  const rec = (recommendedAsset: string) => findRecommendedBackendId({ backends: cudaBackends, recommendedAsset })
+  const linux = { os: 'linux', arch: 'x64' } as const
+  const hw = (version: string) => ({ backends: [backend('cuda', true), backend('cpu')].map(b => b.id === 'cuda' ? { ...b, version } : b) })
+  const pick = (host: typeof win | typeof linux, driver: string) =>
+    pickBestAsset(CUDA_RELEASE, host, 'cuda', { cudaMax: cudaMaxForHardware(hw(driver)) })
 
-  it('keeps the toolkit version from the detector recommendation', () => {
-    expect(rec('win-cuda-cu12.4-x64.zip')).toBe('cuda-cu12.4')
-    expect(rec('win-cuda-cu12.0-x64.zip')).toBe('cuda-cu12.0')
-    expect(rec('win-cuda-cu11-x64.zip')).toBe('cuda-cu11')
+  it('parses ubuntu-cuda-12.8 as CUDA, not cpu', () => {
+    expect(mk('llama-b1-bin-ubuntu-cuda-12.8-x64.tar.gz').backend).toBe('cuda-cu12.8')
+    expect(mk('llama-b1-bin-win-cuda-13.4-x64.zip').backend).toBe('cuda-cu13.4')
   })
 
-  it('does not hand a cu12.4 driver the newer cu13.1 build (regression)', () => {
-    expect(pickBestAsset(CUDA_RELEASE, win, rec('win-cuda-cu12.4-x64.zip'))?.backend).toBe('cuda-cu12.4')
+  it('a CPU-only Linux host never gets a CUDA build as its "cpu" build', () => {
+    expect(pickBestAsset(CUDA_RELEASE, linux, undefined)?.backend).toBe('cpu')
   })
 
-  it('uses an older toolkit build on a newer driver when the exact one is absent', () => {
-    const older = ['llama-b1-bin-win-cuda-12.0-x64.zip', 'llama-b1-bin-win-cpu-x64.zip'].map(mk)
-    expect(pickBestAsset(older, win, 'cuda-cu12.4')?.backend).toBe('cuda-cu12.0')
+  it('driver 551 (CUDA 12.4) gets the 12.4 build, not the newer 13.4', () => {
+    expect(pick(win, '551.61')?.backend).toBe('cuda-cu12.4')
   })
 
-  it('falls back to a non-CUDA build when every CUDA build is too new for the driver', () => {
-    const a = pickBestAsset(CUDA_RELEASE, win, 'cuda-cu12.0')
-    expect(a?.backend).not.toMatch(/^cuda/)
-    expect(a?.backend).toBe('cpu')
+  it('driver 580+ gets the newest build', () => {
+    expect(pick(win, '580.11')?.backend).toBe('cuda-cu13.4')
+    expect(pick(linux, '581.00')?.backend).toBe('cuda-cu13.4')
   })
 
-  it('picks cu13.1 only when the driver supports it', () => {
-    expect(pickBestAsset(CUDA_RELEASE, win, 'cuda-cu13.1')?.backend).toBe('cuda-cu13.1')
+  it('driver 570 on Linux gets cu12.8; on Windows (only 12.4 published) cu12.4', () => {
+    expect(pick(linux, '570.86')?.backend).toBe('cuda-cu12.8')
+    expect(pick(win, '570.86')?.backend).toBe('cuda-cu12.4')
+  })
+
+  it('falls back to a non-CUDA build when the driver is too old for every CUDA build', () => {
+    expect(pick(win, '535.10')?.backend).toBe('cpu') // supports 12.0 only
+    expect(pick(win, '460.30')?.backend).toBe('cpu')
+  })
+
+  it('an nvcc-only host (toolkit version, not driver) is read as a toolkit', () => {
+    expect(pick(win, '12.4')?.backend).toBe('cuda-cu12.4')
+    expect(pick(linux, '12.9')?.backend).toBe('cuda-cu12.8')
+  })
+
+  it('an explicit toolkit hint ("cuda-cu12.4") is honoured when no driver info is given', () => {
+    expect(pickBestAsset(CUDA_RELEASE, win, 'cuda-cu12.4')?.backend).toBe('cuda-cu12.4')
+  })
+
+  it('without any version info prefers cu12.4, then any CUDA build', () => {
+    expect(pickBestAsset(CUDA_RELEASE, win, 'cuda')?.backend).toBe('cuda-cu12.4')
+    expect(pickBestAsset(CUDA_RELEASE, linux, 'cuda')?.backend).toBe('cuda-cu13.4')
+  })
+})
+
+describe('findRuntimeFor', () => {
+  const runtimes = [
+    'cudart-llama-bin-win-cuda-12.4-x64.zip',
+    'cudart-llama-bin-win-cuda-13.4-x64.zip',
+    'cudart-llama-b1-bin-ubuntu-cuda-12.8-x64.tar.gz'
+  ].map(n => parseRuntimeAsset(n, `https://example.com/${n}`, 1)!)
+
+  it('matches OS, arch and CUDA version', () => {
+    expect(findRuntimeFor(runtimes, mk('llama-b1-bin-win-cuda-12.4-x64.zip'))?.filename).toBe('cudart-llama-bin-win-cuda-12.4-x64.zip')
+    expect(findRuntimeFor(runtimes, mk('llama-b1-bin-ubuntu-cuda-12.8-x64.tar.gz'))?.filename).toBe('cudart-llama-b1-bin-ubuntu-cuda-12.8-x64.tar.gz')
+  })
+
+  it('returns undefined for non-CUDA engines and for versions without a bundle', () => {
+    expect(findRuntimeFor(runtimes, mk('llama-b1-bin-win-vulkan-x64.zip'))).toBeUndefined()
+    expect(findRuntimeFor(runtimes, mk('llama-b1-bin-ubuntu-cuda-13.4-x64.tar.gz'))).toBeUndefined()
+    expect(findRuntimeFor(undefined, mk('llama-b1-bin-win-cuda-12.4-x64.zip'))).toBeUndefined()
   })
 })

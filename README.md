@@ -31,6 +31,11 @@ Download the latest build from the
 | Windows (x64) | `llama-studio.Setup.<version>.exe` | The installer is not code-signed, so Windows SmartScreen may warn: choose *More info → Run anyway*. |
 | Linux (x64) | `llama-studio-<version>.AppImage` | `chmod +x llama-studio-*.AppImage && ./llama-studio-*.AppImage`. Needs FUSE 2; if it is missing, run with `--appimage-extract-and-run`. |
 
+**NVIDIA GPUs (CUDA):** llama.cpp's CUDA builds do not include the CUDA runtime libraries
+(cudart/cuBLAS). llama-studio picks the newest CUDA build your driver supports and also
+downloads the matching runtime bundle (about 150–600 MB more) into the same folder,
+unless a matching CUDA toolkit is already installed on the machine.
+
 macOS is configured in `package.json` but is not built by the release workflow yet.
 
 ## Build from source

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Download, CheckCircle2, Zap } from 'lucide-react'
-import { humanizeTag, formatBytes, formatDownloads, BACKEND_LABELS } from './helpers'
+import { humanizeTag, formatBytes, formatDownloads, backendMeta } from './helpers'
 import type { ParsedAsset } from '../../../core/binaries/types'
 
 interface Props {
@@ -16,7 +16,7 @@ interface Props {
 }
 
 export function BestForYouCard({ tag, asset, reasonText, isInstalled, progress, onInstall }: Props) {
-  const meta = BACKEND_LABELS[asset.backend] || { label: asset.backend.toUpperCase(), icon: 'cpu' as const }
+  const meta = backendMeta(asset.backend)
 
   return (
     <Card className="p-4 border-primary/20 bg-primary/[0.03] shrink-0">

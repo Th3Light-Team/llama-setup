@@ -1,5 +1,6 @@
-import { ipcMain } from 'electron'
+import { BrowserWindow, ipcMain } from 'electron'
 import { fetchReleases } from '../../core/binaries/github'
+import { findRuntimeFor } from '../../core/binaries/select'
 import {
   getInstalledBinaries,
   installBinary,
@@ -12,7 +13,11 @@ let releasesCache: { data: ReleaseWithAssets[], timestamp: number } | null = nul
 const CACHE_TTL = 15 * 60 * 1000 // 15 minutes
 
 export function setupBinariesIPC() {
-  registerBinaryInstallHooks()
+  // Tell every window once an install is fully registered (after any CUDA runtime merge),
+  // so lists refresh against the final state rather than the raw download events.
+  registerBinaryInstallHooks(installId => {
+    for (const w of BrowserWindow.getAllWindows()) w.webContents.send('binaries:changed', installId)
+  })
 
   ipcMain.handle('binaries:listReleases', async (_, forceRefresh?: boolean) => {
     try {
@@ -35,8 +40,15 @@ export function setupBinariesIPC() {
 
   ipcMain.handle('binaries:install', async (_event, tag: string, asset: ParsedAsset) => {
     try {
+      // CUDA engines need the matching cudart bundle from the same release.
+      let runtime: ParsedAsset | undefined
+      if (asset.backend.startsWith('cuda')) {
+        let release = releasesCache?.data.find(r => r.tag === tag)
+        if (!release) release = (await fetchReleases()).find(r => r.tag === tag)
+        runtime = findRuntimeFor(release?.runtimes, asset)
+      }
       // Returns a download job id; progress is observed via the downloads drawer.
-      return installBinary(tag, asset)
+      return installBinary(tag, asset, runtime)
     } catch (err) {
       console.error('Install failed:', err)
       throw err

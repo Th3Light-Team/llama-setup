@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { parseAsset, fetchReleases } from './github'
+import { parseAsset, parseRuntimeAsset, fetchReleases } from './github'
 
 const URL = 'https://github.com/ggml-org/llama.cpp/releases/download/b8757/'
 const parse = (name: string) => parseAsset(name, URL + name, 1234, 7)
@@ -90,10 +90,48 @@ describe('fetchReleases', () => {
     expect(rel.totalAssets).toBe(3)
     expect(rel.totalDownloads).toBe(10)
     expect(rel.assets.map(a => a.filename)).toEqual(['llama-b8757-bin-ubuntu-x64.tar.gz'])
+    // cudart bundles are not engines, but are kept as CUDA runtimes
+    expect(rel.runtimes.map(a => `${a.os}/${a.backend}`)).toEqual(['windows/cuda-cu12.4'])
   })
 
   it('throws on a non-OK response', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, statusText: 'rate limit exceeded' }))
     await expect(fetchReleases()).rejects.toThrow(/rate limit exceeded/)
+  })
+})
+
+describe('current llama.cpp CUDA assets (b11312)', () => {
+  const cases: Array<[string, string, string]> = [
+    ['llama-b11312-bin-ubuntu-cuda-12.8-x64.tar.gz', 'linux', 'cuda-cu12.8'], // used to be read as "cpu"
+    ['llama-b11312-bin-ubuntu-cuda-13.4-x64.tar.gz', 'linux', 'cuda-cu13.4'],
+    ['llama-b11312-bin-ubuntu-cuda-13.4-arm64.tar.gz', 'linux', 'cuda-cu13.4'],
+    ['llama-b11312-bin-win-cuda-12.4-x64.zip', 'windows', 'cuda-cu12.4'],
+    ['llama-b11312-bin-win-cuda-13.4-x64.zip', 'windows', 'cuda-cu13.4'],
+    ['llama-b11312-bin-ubuntu-x64.tar.gz', 'linux', 'cpu']
+  ]
+  it.each(cases)('%s -> %s / %s', (name, os, backend) => {
+    const a = parse(name)
+    expect(a?.os).toBe(os)
+    expect(a?.backend).toBe(backend)
+  })
+
+  it('keeps older naming working (cuda-cu12.4, cuda-11)', () => {
+    expect(parse('llama-b1-bin-win-cuda-cu12.4-x64.zip')?.backend).toBe('cuda-cu12.4')
+    expect(parse('llama-b1-bin-win-cuda-11-x64.zip')?.backend).toBe('cuda-cu11')
+  })
+})
+
+describe('parseRuntimeAsset (cudart bundles)', () => {
+  const rt = (name: string) => parseRuntimeAsset(name, URL + name, 391_000_000)
+
+  it('parses the version-less Windows name and the tagged Linux name', () => {
+    expect(rt('cudart-llama-bin-win-cuda-12.4-x64.zip')).toMatchObject({ os: 'windows', arch: 'x64', backend: 'cuda-cu12.4' })
+    expect(rt('cudart-llama-b11312-bin-ubuntu-cuda-13.4-x64.tar.gz')).toMatchObject({ os: 'linux', arch: 'x64', backend: 'cuda-cu13.4' })
+    expect(rt('cudart-llama-bin-win-cuda-13.4-arm64.zip')).toMatchObject({ os: 'windows', arch: 'arm64', backend: 'cuda-cu13.4' })
+  })
+
+  it('ignores engines and non-archives', () => {
+    expect(rt('llama-b11312-bin-win-cuda-12.4-x64.zip')).toBeNull()
+    expect(rt('cudart-llama-bin-win-cuda-12.4-x64.zip.sha256')).toBeNull()
   })
 })

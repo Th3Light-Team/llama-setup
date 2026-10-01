@@ -12,6 +12,11 @@ try {
       listReleases: (forceRefresh?: boolean) => ipcRenderer.invoke('binaries:listReleases', forceRefresh),
       getInstalled: () => ipcRenderer.invoke('binaries:getInstalled'),
       install: (tag: string, asset: any) => ipcRenderer.invoke('binaries:install', tag, asset),
+      onChanged: (cb: (installId: string) => void) => {
+        const handler = (_e: any, installId: string) => cb(installId)
+        ipcRenderer.on('binaries:changed', handler)
+        return () => ipcRenderer.removeListener('binaries:changed', handler)
+      },
       uninstall: (id: string) => ipcRenderer.invoke('binaries:uninstall', id)
     },
     launcher: {

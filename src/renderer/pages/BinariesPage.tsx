@@ -19,7 +19,9 @@ import { useTourPart } from '@/lib/tour/useTourPart'
 
 import { BestForYouCard } from './binaries/BestForYouCard'
 import { ReleasesPanel } from './binaries/ReleasesPanel'
-import { humanizeTag, getHealthColor, getHealthLabel, BACKEND_LABELS } from './binaries/helpers'
+import { humanizeTag, getHealthColor, getHealthLabel, backendMeta } from './binaries/helpers'
+import { cudaMaxForHardware, findRecommendedBackendId, findRuntimeFor, pickBestAsset } from '../../core/binaries/select'
+import { installProgressFor } from '@/lib/install-progress'
 import type { ParsedAsset } from '../../core/binaries/types'
 import type { EngineRow } from '../../core/engines/types'
 
@@ -70,26 +72,35 @@ export default function BinariesPage() {
 
   // Refresh the engine list whenever a binary download finishes.
   useEffect(() => {
-    const off = window.electron.downloads.onDone(() => { fetchInstalled(); loadEngines(true) })
-    return off
+    const offDone = window.electron.downloads.onDone(() => { fetchInstalled(); loadEngines(true) })
+    // Fires after the install is fully registered (incl. CUDA runtime merge)
+    const offChanged = window.electron.binaries.onChanged(() => { fetchInstalled(); loadEngines(true) })
+    return () => { offDone(); offChanged() }
   }, [fetchInstalled, loadEngines])
 
+  // One combined progress value per install (engine + CUDA runtime, when present).
   const installProgress: Record<string, number> = {}
+  const installIds = new Set<string>()
   for (const job of Object.values(downloadJobs)) {
-    if (job.kind !== 'binary') continue
-    const extra = job.extra as { installId?: string } | null
-    if (!extra?.installId) continue
-    if (job.state === 'done' || job.state === 'failed' || job.state === 'cancelled') continue
-    installProgress[extra.installId] = job.bytesTotal && job.bytesTotal > 0
-      ? Math.round((job.bytesDone / job.bytesTotal) * 100) : 0
+    const e = job.extra as { installId?: string; runtimeOf?: string } | null
+    const id = e?.installId ?? e?.runtimeOf
+    if (job.kind === 'binary' && id) installIds.add(id)
+  }
+  for (const id of installIds) {
+    const p = installProgressFor(downloadJobs, id)
+    if (p && p.state === 'active') installProgress[id] = p.percent
   }
 
   const hostOs = hardwareResult?.os || 'unknown'
   const hostArch = hardwareResult?.arch || 'unknown'
   const latestRelease = releases[0]
   const latestBuild = latestRelease ? parseInt(latestRelease.tag.replace(/^b/i, ''), 10) : null
-  const compatibleAssets = latestRelease?.assets.filter(a => a.os === hostOs && a.arch === hostArch) ?? []
-  const recommendedAsset = compatibleAssets.find(a => hardwareResult?.recommendedAsset.includes(a.backend)) || compatibleAssets[0]
+  const recommendedAsset = pickBestAsset(
+    latestRelease?.assets ?? [],
+    hardwareResult,
+    findRecommendedBackendId(hardwareResult),
+    { cudaMax: cudaMaxForHardware(hardwareResult) }
+  )
   const bestForYouId = latestRelease && recommendedAsset ? `${latestRelease.tag}-${recommendedAsset.backend}-${recommendedAsset.arch}` : null
   const isBestInstalled = bestForYouId ? installed.some(i => i.id === bestForYouId) : false
   const bestProgress = bestForYouId ? installProgress[bestForYouId] : undefined
@@ -100,7 +111,7 @@ export default function BinariesPage() {
     : hostOs !== 'unknown' ? `Best option for ${hostOs} (${hostArch})` : 'Recommended for your system'
 
   const recommendedBackendLabel = recommendedAsset
-    ? (BACKEND_LABELS[recommendedAsset.backend]?.label ?? recommendedAsset.backend)
+    ? backendMeta(recommendedAsset.backend).label
     : null
 
   const updateCount = useMemo(() => engines.filter(e => {
@@ -109,7 +120,10 @@ export default function BinariesPage() {
   }).length, [engines, latestBuild])
 
   async function handleInstall(tag: string, asset: ParsedAsset) {
-    const sizeMB = Math.round(asset.size / (1024 * 1024))
+    // CUDA engines also pull the cudart runtime bundle (skipped if a matching toolkit is installed)
+    const release = releases.find(r => r.tag === tag)
+    const runtime = release ? findRuntimeFor(release.runtimes, asset) : undefined
+    const sizeMB = Math.round((asset.size + (runtime?.size ?? 0)) / (1024 * 1024))
     const pf = await preflightCheck({ sizeMB })
     setPendingInstall({ tag, asset })
     setPendingPreflight(pf)
@@ -133,9 +147,12 @@ export default function BinariesPage() {
     // for the host platform. Falls back to the recommended asset.
     if (!latestRelease) return
     const fam = backendFamily(engine.backend)
-    const match = latestRelease.assets.find(a => a.os === hostOs && a.arch === hostArch && backendFamily(a.backend) === fam)
-      ?? recommendedAsset
-    if (match) handleInstall(latestRelease.tag, match)
+    // CUDA: newest build this driver can run, not just the first CUDA asset in the list
+    const match = fam === 'cuda'
+      ? pickBestAsset(latestRelease.assets, hardwareResult, 'cuda', { cudaMax: cudaMaxForHardware(hardwareResult) })
+      : latestRelease.assets.find(a => a.os === hostOs && a.arch === hostArch && backendFamily(a.backend) === fam)
+    const target = match ?? recommendedAsset
+    if (target) handleInstall(latestRelease.tag, target)
   }
 
   async function handleVerify(engine: EngineRow) {

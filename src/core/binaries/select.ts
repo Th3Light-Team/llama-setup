@@ -1,5 +1,12 @@
 import type { BackendResult, DetectionResult } from '../types'
 import type { ParsedAsset } from './types'
+import {
+  type CudaVersion,
+  DEFAULT_CUDA_BACKEND,
+  compareCuda,
+  cudaVersionOfBackend,
+  maxToolkitForBackendVersion
+} from './cuda'
 
 /** The subset of hardware detection output the asset picker needs. */
 export type HostInfo = Pick<DetectionResult, 'os' | 'arch'> &
@@ -12,38 +19,41 @@ export type HostInfo = Pick<DetectionResult, 'os' | 'arch'> &
  */
 export function findRecommendedBackendId(
   hw: Pick<DetectionResult, 'backends' | 'recommendedAsset'> | null | undefined
-): BackendResult['id'] | string | undefined {
+): BackendResult['id'] | undefined {
   if (!hw?.backends) return undefined
   const rec = (hw.recommendedAsset ?? '').toLowerCase()
-  const id = hw.backends.find(b => rec.includes(b.id))?.id
-  if (id === 'cuda') {
-    // The driver decides which CUDA toolkit build can run: keep the version
-    // ("win-cuda-cu12.4-x64" / "win-cuda-12.4-x64" -> "cuda-cu12.4").
-    const m = rec.match(/cuda-(?:cu)?(\d+(?:\.\d+)?)/)
-    if (m) return `cuda-cu${m[1]}`
-  }
-  return id
+  return hw.backends.find(b => rec.includes(b.id))?.id
 }
 
-/** CUDA toolkit builds, newest first. A build runs on drivers that support its toolkit or newer. */
-const CUDA_BUILDS = ['cuda-cu13.1', 'cuda-cu12.4', 'cuda-cu12.0', 'cuda-cu11']
+/**
+ * Newest CUDA toolkit this machine's NVIDIA driver (or toolkit, when only nvcc
+ * was found) can run, or null if unknown / no usable CUDA.
+ */
+export function cudaMaxForHardware(
+  hw: Pick<DetectionResult, 'backends'> | null | undefined
+): CudaVersion | null {
+  const cuda = hw?.backends?.find(b => b.id === 'cuda' && b.available)
+  return maxToolkitForBackendVersion(cuda?.version)
+}
+
+export interface PickOptions {
+  /** Newest CUDA toolkit the host can run (see cudaMaxForHardware). */
+  cudaMax?: CudaVersion | null
+}
 
 /**
- * Pick the CUDA asset a driver can run: the newest build that is not newer
- * than the recommended toolkit (older toolkits run on newer drivers, never the
- * reverse). A bare "cuda" (version unknown) prefers cu12.4, then any CUDA build.
+ * Newest CUDA build that is not newer than `max` (older toolkits run on newer
+ * drivers, never the reverse). Without a known max, prefer the widely
+ * compatible default, then any CUDA build.
  */
-function pickCudaAsset(hostAssets: ParsedAsset[], recommended: string): ParsedAsset | undefined {
-  const cuda = hostAssets.filter(a => a.backend.startsWith('cuda'))
-  const idx = CUDA_BUILDS.indexOf(recommended.toLowerCase())
-  if (idx === -1) {
-    return cuda.find(a => a.backend === 'cuda-cu12.4') ?? cuda[0]
-  }
-  for (const build of CUDA_BUILDS.slice(idx)) {
-    const hit = cuda.find(a => a.backend === build)
-    if (hit) return hit
-  }
-  return undefined
+function pickCudaAsset(cuda: ParsedAsset[], max: CudaVersion | null | undefined): ParsedAsset | undefined {
+  if (!max) return cuda.find(a => a.backend === DEFAULT_CUDA_BACKEND) ?? cuda[0]
+  return cuda
+    .filter(a => {
+      const v = cudaVersionOfBackend(a.backend)
+      return v !== null && compareCuda(v, max) <= 0
+    })
+    .sort((a, b) => compareCuda(cudaVersionOfBackend(b.backend)!, cudaVersionOfBackend(a.backend)!))[0]
 }
 
 /**
@@ -52,28 +62,41 @@ function pickCudaAsset(hostAssets: ParsedAsset[], recommended: string): ParsedAs
  * Only assets built for the host OS and CPU architecture are considered (an
  * arm64 build on an x64 box won't run). Among those: the asset whose backend
  * matches the recommended one, else the plain CPU build, else the first host
- * asset. When `hw` is null/undefined, no OS/arch filtering is applied.
+ * asset. For CUDA, the newest build the driver can run is chosen. When `hw` is
+ * null/undefined, no OS/arch filtering is applied.
  */
 export function pickBestAsset(
   assets: ParsedAsset[],
   hw: Pick<DetectionResult, 'os' | 'arch'> | null | undefined,
-  recommendedBackendId?: string | null
+  recommendedBackendId?: string | null,
+  opts: PickOptions = {}
 ): ParsedAsset | undefined {
   const hostAssets = assets.filter(a =>
     (!hw?.os || a.os === hw.os) && (!hw?.arch || a.arch === hw.arch)
   )
+  const cpuOrOther = () =>
+    hostAssets.find(a => a.backend === 'cpu') ??
+    hostAssets.find(a => !a.backend.startsWith('cuda')) ??
+    hostAssets[0]
+
   if (recommendedBackendId?.toLowerCase().startsWith('cuda')) {
-    const cuda = pickCudaAsset(hostAssets, recommendedBackendId)
-    if (cuda) return cuda
-    return hostAssets.find(a => a.backend === 'cpu') ?? hostAssets.find(a => !a.backend.startsWith('cuda')) ?? hostAssets[0]
+    const hinted = cudaVersionOfBackend(recommendedBackendId) // e.g. "cuda-cu12.4" passed explicitly
+    const max = opts.cudaMax ?? hinted
+    const cudaAssets = hostAssets.filter(a => a.backend.startsWith('cuda'))
+    return pickCudaAsset(cudaAssets, max) ?? cpuOrOther()
   }
+
   return (
     hostAssets.find(a =>
       recommendedBackendId
         ? a.backend.toLowerCase().includes(recommendedBackendId.toLowerCase())
         : a.backend === 'cpu'
-    ) ??
-    hostAssets.find(a => a.backend === 'cpu') ??
-    hostAssets[0]
+    ) ?? cpuOrOther()
   )
+}
+
+/** The CUDA runtime bundle (cudart-*) that goes with a CUDA engine asset, if the release has one. */
+export function findRuntimeFor(runtimes: ParsedAsset[] | undefined, asset: ParsedAsset): ParsedAsset | undefined {
+  if (!asset.backend.startsWith('cuda')) return undefined
+  return (runtimes ?? []).find(r => r.os === asset.os && r.arch === asset.arch && r.backend === asset.backend)
 }

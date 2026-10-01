@@ -8,6 +8,7 @@ interface Window {
       listReleases: (forceRefresh?: boolean) => Promise<import('../core/binaries/types').ReleaseWithAssets[]>
       getInstalled: () => Promise<import('../core/binaries/types').InstallRecord[]>
       install: (tag: string, asset: import('../core/binaries/types').ParsedAsset) => Promise<string>
+      onChanged: (cb: (installId: string) => void) => () => void
       uninstall: (id: string) => Promise<void>
     }
     launcher: {

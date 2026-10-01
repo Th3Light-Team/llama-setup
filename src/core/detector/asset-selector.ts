@@ -1,5 +1,6 @@
 import { BackendResult } from '../../types'
 import { getCudaSuffix } from './probes/cuda.probe'
+import { maxToolkitForBackendVersion } from '../binaries/cuda'
 
 type OSType = 'windows' | 'macos' | 'linux'
 type ArchType = 'x64' | 'arm64'
@@ -38,9 +39,20 @@ export function selectAsset(
 
     let pattern: string
     if (backendId === 'cuda') {
-      const cudaSuffix = getCudaSuffix(backend.version || '')
+      // backend.version is the NVIDIA driver (nvidia-smi, e.g. "551.61") or, when
+      // only nvcc was found, the toolkit version ("12.4").
+      const ver = backend.version ?? ''
+      const first = parseInt(ver.split('.')[0], 10)
+      let cudaSuffix: string
+      if (!isNaN(first) && first < 100) {
+        const toolkit = maxToolkitForBackendVersion(ver)!
+        cudaSuffix = `cuda-cu${toolkit.major}${Number.isFinite(toolkit.minor) ? `.${toolkit.minor}` : ''}`
+      } else {
+        cudaSuffix = getCudaSuffix(ver)
+      }
       if (!cudaSuffix) continue // Driver too old, skip CUDA
-      pattern = `${osSuffix}-${cudaSuffix}-${archSuffix}`
+      // Real release names use "cuda-12.4", our backend ids "cuda-cu12.4"
+      pattern = `${osSuffix}-${cudaSuffix.replace('cuda-cu', 'cuda-')}-${archSuffix}`
     } else if (backendId === 'metal') {
       pattern = `macos-${archSuffix}`
     } else if (backendId === 'cpu') {
@@ -52,7 +64,8 @@ export function selectAsset(
 
     // If we have a list of real assets, match against it
     if (availableAssets.length > 0) {
-      const match = availableAssets.find(a => a.includes(pattern))
+      // Real names say "cuda-12.4"; older fixtures "cuda-cu12.4" — compare on the normalised form
+      const match = availableAssets.find(a => a.replace('cuda-cu', 'cuda-').includes(pattern))
       if (match) return match
     } else {
       // No assets list yet (pre-release fetch): return the pattern itself

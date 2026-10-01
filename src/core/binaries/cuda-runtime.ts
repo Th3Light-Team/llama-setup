@@ -1,5 +1,5 @@
 import { existsSync } from 'fs'
-import { join } from 'path'
+import { join, posix } from 'path'
 import type { CudaVersion } from './cuda'
 
 export interface RuntimeProbeDeps {
@@ -41,7 +41,7 @@ export function hasSystemCudaRuntime(version: CudaVersion, deps: Partial<Runtime
       '/usr/lib64'
     ]
     return dirs.some(dir =>
-      exists(join(dir, `libcudart.so.${major}`)) && exists(join(dir, `libcublas.so.${major}`))
+      exists(posix.join(dir, `libcudart.so.${major}`)) && exists(posix.join(dir, `libcublas.so.${major}`))
     )
   }
 

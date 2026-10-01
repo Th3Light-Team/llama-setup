@@ -62,3 +62,24 @@ describe('buildCliPreview', () => {
     expect(buildCliPreview('/opt/llama-server', getDefaultValues())).toBe('/opt/llama-server')
   })
 })
+
+describe('booleans that default to true can be switched off', () => {
+  it('emits -nocb when continuous batching is turned off', () => {
+    expect(buildCliArgs({ ...getDefaultValues(), cont_batching: false })).toEqual(['-nocb'])
+  })
+
+  it('emits -fa off when flash attention is turned off', () => {
+    expect(buildCliArgs({ ...getDefaultValues(), flash_attn: false })).toEqual(['-fa', 'off'])
+  })
+
+  it('emits nothing when they stay on, and shows the off flags in the CLI preview', () => {
+    expect(buildCliArgs({ ...getDefaultValues(), flash_attn: true, cont_batching: true })).toEqual([])
+    expect(buildCliPreview('llama-server', { ...getDefaultValues(), cont_batching: false })).toBe('llama-server -nocb')
+  })
+
+  it('every default-true boolean declares how to turn it off', () => {
+    for (const f of FLAG_CATALOG.filter(f => f.type === 'boolean' && f.default === true)) {
+      expect(f.offArgs?.length, f.key).toBeGreaterThan(0)
+    }
+  })
+})

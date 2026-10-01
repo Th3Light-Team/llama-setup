@@ -69,7 +69,8 @@ export const FLAG_CATALOG: FlagDef[] = [
   {
     key: 'flash_attn', flag: '-fa', label: 'Flash Attention', group: 'gpu',
     description: 'Enable Flash Attention for faster inference',
-    type: 'boolean', default: true, gpuOnly: true, affectsVram: true
+    type: 'boolean', default: true, gpuOnly: true, affectsVram: true,
+    offArgs: ['-fa', 'off']
   },
 
   // ═══════════════════════════════════════════════════════════
@@ -170,7 +171,8 @@ export const FLAG_CATALOG: FlagDef[] = [
   {
     key: 'cont_batching', flag: '-cb', label: 'Continuous Batching', group: 'server',
     description: 'Enable continuous batching for better throughput',
-    type: 'boolean', default: true
+    type: 'boolean', default: true,
+    offArgs: ['-nocb']
   },
   {
     key: 'api_key', flag: '--api-key', label: 'API Key', group: 'server',
@@ -205,7 +207,8 @@ export const FLAG_CATALOG: FlagDef[] = [
 
 /**
  * Convert current flag values into a CLI argument array for llama-server.
- * Only emits flags whose values differ from the default.
+ * Only emits flags whose values differ from the default. Booleans that
+ * default to true are switched off with their `offArgs` (e.g. -nocb).
  */
 export function buildCliArgs(values: Record<string, any>): string[] {
   const args: string[] = []
@@ -219,6 +222,7 @@ export function buildCliArgs(values: Record<string, any>): string[] {
 
     if (def.type === 'boolean') {
       if (val === true) args.push(def.flag)
+      else if (val === false && def.offArgs) args.push(...def.offArgs)
     } else {
       args.push(def.flag, String(val))
     }

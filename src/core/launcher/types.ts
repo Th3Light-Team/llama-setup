@@ -16,6 +16,8 @@ export interface FlagDef {
   affectsVram?: boolean
   /** If true, only show for GPU backends */
   gpuOnly?: boolean
+  /** Boolean flags that default to true: arguments that switch the feature off (emitted when the value is false) */
+  offArgs?: string[]
 }
 
 export type FlagGroup = 'core' | 'gpu' | 'context' | 'sampling' | 'server' | 'experimental'

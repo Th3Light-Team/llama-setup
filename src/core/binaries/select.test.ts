@@ -113,7 +113,7 @@ describe('findRecommendedBackendId', () => {
 
   it('extracts the backend named in the recommended asset', () => {
     expect(findRecommendedBackendId({ backends, recommendedAsset: 'ubuntu-vulkan-x64.zip' })).toBe('vulkan')
-    expect(findRecommendedBackendId({ backends, recommendedAsset: 'Win-CUDA-12.4-x64.zip' })).toBe('cuda')
+    expect(findRecommendedBackendId({ backends, recommendedAsset: 'Win-CUDA-12.4-x64.zip' })).toBe('cuda-cu12.4')
   })
 
   it('returns undefined for a generic CPU recommendation', () => {
@@ -123,5 +123,43 @@ describe('findRecommendedBackendId', () => {
   it('returns undefined without hardware info', () => {
     expect(findRecommendedBackendId(null)).toBeUndefined()
     expect(findRecommendedBackendId(undefined)).toBeUndefined()
+  })
+})
+
+describe('CUDA toolkit version matching (driver compatibility)', () => {
+  // Listed newest-first, like the real releases: a naive "first CUDA asset" picks cu13.1.
+  const CUDA_RELEASE: ParsedAsset[] = [
+    'llama-b1-bin-win-cuda-13.1-x64.zip',
+    'llama-b1-bin-win-cuda-12.4-x64.zip',
+    'llama-b1-bin-win-vulkan-x64.zip',
+    'llama-b1-bin-win-cpu-x64.zip'
+  ].map(mk)
+  const win = { os: 'windows', arch: 'x64' } as const
+  const cudaBackends = [backend('cuda'), backend('cpu')]
+  const rec = (recommendedAsset: string) => findRecommendedBackendId({ backends: cudaBackends, recommendedAsset })
+
+  it('keeps the toolkit version from the detector recommendation', () => {
+    expect(rec('win-cuda-cu12.4-x64.zip')).toBe('cuda-cu12.4')
+    expect(rec('win-cuda-cu12.0-x64.zip')).toBe('cuda-cu12.0')
+    expect(rec('win-cuda-cu11-x64.zip')).toBe('cuda-cu11')
+  })
+
+  it('does not hand a cu12.4 driver the newer cu13.1 build (regression)', () => {
+    expect(pickBestAsset(CUDA_RELEASE, win, rec('win-cuda-cu12.4-x64.zip'))?.backend).toBe('cuda-cu12.4')
+  })
+
+  it('uses an older toolkit build on a newer driver when the exact one is absent', () => {
+    const older = ['llama-b1-bin-win-cuda-12.0-x64.zip', 'llama-b1-bin-win-cpu-x64.zip'].map(mk)
+    expect(pickBestAsset(older, win, 'cuda-cu12.4')?.backend).toBe('cuda-cu12.0')
+  })
+
+  it('falls back to a non-CUDA build when every CUDA build is too new for the driver', () => {
+    const a = pickBestAsset(CUDA_RELEASE, win, 'cuda-cu12.0')
+    expect(a?.backend).not.toMatch(/^cuda/)
+    expect(a?.backend).toBe('cpu')
+  })
+
+  it('picks cu13.1 only when the driver supports it', () => {
+    expect(pickBestAsset(CUDA_RELEASE, win, 'cuda-cu13.1')?.backend).toBe('cuda-cu13.1')
   })
 })

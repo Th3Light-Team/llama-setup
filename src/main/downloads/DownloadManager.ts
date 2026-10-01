@@ -34,7 +34,7 @@ import {
   backoffDelayMs
 } from './download-utils'
 
-import { verifyGGUFMagic, extractZipTo } from './verifiers'
+import { verifyGGUFMagic, extractArchiveTo } from './verifiers'
 import { auditGgufFile } from '../../core/security/gguf-auditor'
 
 const MAX_CONCURRENT = 2
@@ -254,7 +254,15 @@ export class DownloadManager {
         }
       },
       hash
-    )
+    ).catch(async (err: Error) => {
+      // 416 = our partial file already covers the whole resource (e.g. a later
+      // step failed after the download finished). Restart cleanly on retry.
+      if (/^HTTP 416/.test(err?.message ?? '')) {
+        await unlink(job.partPath).catch(() => {})
+        await deletePartMeta(job.metaPath)
+      }
+      throw err
+    })
 
     if (stalled) throw new Error('Download stalled (no progress for 60s)')
 
@@ -301,7 +309,7 @@ export class DownloadManager {
       this.transition(job, 'extracting')
       const tmpExtractDir = `${job.targetPath}.tmp`
       await rm(tmpExtractDir, { recursive: true, force: true }).catch(() => {})
-      await extractZipTo(job.partPath, tmpExtractDir)
+      await extractArchiveTo(job.partPath, job.url, tmpExtractDir)
       // Move tmp dir to final target
       if (existsSync(job.targetPath)) {
         await rm(job.targetPath, { recursive: true, force: true })

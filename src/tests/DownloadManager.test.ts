@@ -28,7 +28,8 @@ vi.mock('../main/downloads/download-utils', () => ({
 vi.mock('../main/downloads/verifiers', () => ({
   verifyGGUFMagic: vi.fn().mockResolvedValue(true),
   sha256OfFile: vi.fn().mockResolvedValue('a'.repeat(64)),
-  extractZipTo: vi.fn().mockResolvedValue(undefined)
+  extractZipTo: vi.fn().mockResolvedValue(undefined),
+  extractArchiveTo: vi.fn().mockResolvedValue(undefined)
 }))
 
 vi.mock('fs/promises', () => ({

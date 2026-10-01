@@ -88,7 +88,9 @@ describe('PathAnalysis', () => {
     const { buildPathAnalysis } = await import('./path-analysis')
     const result = buildPathAnalysis([])
     expect(result.entries).toHaveLength(0)
-    expect(result.warnings).toEqual([])
+    // The "binaries dir not on PATH" warning depends on whether the host has
+    // already run the app (~/.llama-studio/binaries exists), so ignore it here.
+    expect(result.warnings.filter(w => !w.startsWith('Llama Studio binaries directory'))).toEqual([])
   })
 
   it('generates warning for non-existent PATH directory', async () => {

@@ -80,7 +80,7 @@ export const CURATED_MODELS: CuratedModel[] = [
     description: 'Microsoft\'s compact powerhouse — punches above its weight with a 128k context window.',
   },
   {
-    id: 'bartowski/gemma-3-4b-it-GGUF',
+    id: 'bartowski/google_gemma-3-4b-it-GGUF',
     family: 'Gemma 3 4B',
     author: 'google',
     category: 'small',
@@ -137,7 +137,7 @@ export const CURATED_MODELS: CuratedModel[] = [
     description: 'Strong multilingual 7B model from Alibaba with excellent reasoning across tasks.',
   },
   {
-    id: 'bartowski/gemma-3-12b-it-GGUF',
+    id: 'bartowski/google_gemma-3-12b-it-GGUF',
     family: 'Gemma 3 12B',
     author: 'google',
     category: 'chat',

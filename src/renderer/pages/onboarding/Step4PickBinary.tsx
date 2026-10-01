@@ -22,9 +22,13 @@ export default function Step4PickBinary({ onNext, onSkip }: Props) {
 
   const recommended = hw?.backends?.find(b => hw.recommendedAsset.toLowerCase().includes(b.id))
   const latest = releases[0]
-  const bestAsset = latest?.assets?.find(a =>
+  // Only consider assets built for this machine's OS and CPU architecture.
+  const hostAssets = (latest?.assets ?? []).filter(a =>
+    (!hw?.os || a.os === hw.os) && (!hw?.arch || a.arch === hw.arch)
+  )
+  const bestAsset = hostAssets.find(a =>
     recommended ? a.backend.toLowerCase().includes(recommended.id.toLowerCase()) : a.backend === 'cpu'
-  ) ?? latest?.assets?.[0]
+  ) ?? hostAssets.find(a => a.backend === 'cpu') ?? hostAssets[0]
 
   const installId = bestAsset && latest ? `${latest.tag}-${bestAsset.backend}-${bestAsset.arch}` : null
   const downloadJob = installId
@@ -87,6 +91,11 @@ export default function Step4PickBinary({ onNext, onSkip }: Props) {
                 <Badge variant="outline">{bestAsset.arch}</Badge>
               </div>
             </div>
+            {downloadJob?.state === 'failed' && (
+              <p className="text-sm text-destructive">
+                Install failed: {downloadJob.errorMessage ?? 'unknown error'}
+              </p>
+            )}
             {installing || done ? (
               <ProgressCard
                 title={`Installing llama.cpp ${latest.tag}`}

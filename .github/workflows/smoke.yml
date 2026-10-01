@@ -1,0 +1,46 @@
+name: Smoke test
+
+# Drives the real Electron app like a new user: onboarding -> install llama.cpp
+# -> download a small model -> start llama-server -> get a reply.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+  schedule:
+    - cron: '0 6 * * 1' # weekly: catches upstream drift (llama.cpp assets, HF repos)
+
+permissions:
+  contents: read
+
+jobs:
+  first-run-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Install Xvfb
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
+      - name: First-run smoke test
+        run: xvfb-run -a --server-args="-screen 0 1280x900x24" node scripts/smoke/first-run.mjs
+        env:
+          SMOKE_ARTIFACTS: ${{ github.workspace }}/smoke-artifacts
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-artifacts
+          path: smoke-artifacts/
+          if-no-files-found: ignore

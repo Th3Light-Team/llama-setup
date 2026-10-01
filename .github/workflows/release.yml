@@ -9,7 +9,11 @@ permissions:
   contents: write
 
 jobs:
+  smoke:
+    uses: ./.github/workflows/smoke.yml
+
   build:
+    needs: smoke
     strategy:
       fail-fast: false
       matrix:

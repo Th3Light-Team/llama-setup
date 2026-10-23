@@ -51,6 +51,7 @@ try {
     },
     library: {
       list: () => ipcRenderer.invoke('library:list'),
+      pickFile: () => ipcRenderer.invoke('library:pickFile'),
       folders: () => ipcRenderer.invoke('library:folders'),
       reveal: (filePath: string) => ipcRenderer.invoke('library:reveal', filePath),
       delete: (filePath: string) => ipcRenderer.invoke('library:delete', filePath),
@@ -58,6 +59,7 @@ try {
       removeFolder: (folderPath: string) => ipcRenderer.invoke('library:removeFolder', folderPath),
     },
     app: {
+      getDevFlags: () => ipcRenderer.invoke('app:devFlags') as Promise<{ sandbox: boolean }>,
       getOnboardingState: () => ipcRenderer.invoke('app:getOnboardingState'),
       setOnboardingState: (state: any) => ipcRenderer.invoke('app:setOnboardingState', state),
       resetOnboarding: () => ipcRenderer.invoke('app:resetOnboarding'),

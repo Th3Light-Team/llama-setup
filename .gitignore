@@ -28,3 +28,4 @@ dist-ssr
 *.sw?
 /.agents
 smoke-artifacts/
+.dev-sandbox/

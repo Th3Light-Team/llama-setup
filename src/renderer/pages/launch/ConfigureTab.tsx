@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { RotateCcw, Box, Monitor, AlignLeft, Dice3, Server, FlaskConical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ModelField } from '@/components/ModelField'
 import { useLauncherStore, useDetectorStore } from '@/lib/stores'
 import { estimateVram } from '../../../core/launcher/vram'
 import type { FlagDef, FlagValues } from '../../../core/launcher/types'
@@ -16,6 +17,10 @@ const GROUP_LABELS: Record<string, string> = {
 
 function FlagControl({ def, value, onChange }: { def: FlagDef; value: any; onChange: (v: any) => void }) {
   const isDefault = value === def.default
+
+  if (def.key === 'model') {
+    return <ModelField def={def} value={value ?? ''} onChange={onChange} isDefault={isDefault} />
+  }
 
   if (def.type === 'boolean') {
     return (

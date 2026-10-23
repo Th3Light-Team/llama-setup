@@ -8,6 +8,9 @@
   "type": "module",
   "scripts": {
     "dev": "npm run rebuild:electron && electron-vite dev",
+    "dev:sandbox": "node scripts/dev-sandbox.mjs",
+    "dev:zero": "node scripts/dev-sandbox.mjs --zero",
+    "test:dev": "node scripts/test-dev.mjs",
     "build": "electron-vite build",
     "lint": "eslint .",
     "test": "npm run rebuild:node && vitest run",

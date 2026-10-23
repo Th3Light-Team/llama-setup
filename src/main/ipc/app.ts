@@ -23,6 +23,9 @@ function setKv(key: string, value: string): void {
 }
 
 export function setupAppIPC() {
+  /** Set by scripts/dev-sandbox.mjs; lets the renderer skip automatic tours there. */
+  ipcMain.handle('app:devFlags', () => ({ sandbox: process.env.LLAMA_STUDIO_SANDBOX === '1' }))
+
   ipcMain.handle('app:getOnboardingState', (): OnboardingState | null => {
     const raw = getKv('onboarding')
     if (!raw) return null

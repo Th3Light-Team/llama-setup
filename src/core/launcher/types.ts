@@ -16,6 +16,8 @@ export interface FlagDef {
   affectsVram?: boolean
   /** If true, only show for GPU backends */
   gpuOnly?: boolean
+  /** If true, always pass the flag, even at the catalog default. Use when the binary's own default differs. */
+  alwaysEmit?: boolean
   /** Boolean flags that default to true: arguments that switch the feature off (emitted when the value is false) */
   offArgs?: string[]
 }

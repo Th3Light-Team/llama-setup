@@ -1,4 +1,4 @@
-import { HfModelSummary, HfModelDetail, GgufVariant, ShardFile } from './types'
+import type { HfModelSummary, HfModelDetail, GgufVariant, ShardFile } from './types'
 
 const HF_API_URL = 'https://huggingface.co/api'
 

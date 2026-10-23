@@ -41,6 +41,7 @@ interface Window {
         folderPath: string
         isDefaultFolder: boolean
       }[]>
+      pickFile: () => Promise<string | null>
       folders: () => Promise<{ path: string; isDefault: boolean }[]>
       reveal: (path: string) => Promise<void>
       delete: (path: string) => Promise<void>
@@ -96,6 +97,7 @@ interface Window {
       onDone: (cb: (e: import('../core/downloads/types').DownloadDoneEvent) => void) => () => void
     }
     app: {
+      getDevFlags: () => Promise<{ sandbox: boolean }>
       getOnboardingState: () => Promise<any>
       setOnboardingState: (state: any) => Promise<void>
       resetOnboarding: () => Promise<void>

@@ -22,6 +22,10 @@ describe('FLAG_CATALOG consistency', () => {
 })
 
 describe('buildCliArgs', () => {
+  it('always passes --port, even at the catalog default', () => {
+    expect(buildCliArgs({ port: 8080 })).toEqual(['--port', '8080'])
+  })
+
   it('emits flag and value as separate argv entries, in catalog order, regardless of key order in input', () => {
     const args = buildCliArgs({ port: 9000, model: '/m.gguf', ctx_size: 8192 })
     expect(args).toEqual(['-m', '/m.gguf', '-c', '8192', '--port', '9000'])
@@ -59,22 +63,22 @@ describe('buildCliPreview', () => {
   })
 
   it('leaves a simple path unquoted and with no args is just the binary', () => {
-    expect(buildCliPreview('/opt/llama-server', getDefaultValues())).toBe('/opt/llama-server')
+    expect(buildCliPreview('/opt/llama-server', getDefaultValues())).toBe('/opt/llama-server --port 8080')
   })
 })
 
 describe('booleans that default to true can be switched off', () => {
   it('emits -nocb when continuous batching is turned off', () => {
-    expect(buildCliArgs({ ...getDefaultValues(), cont_batching: false })).toEqual(['-nocb'])
+    expect(buildCliArgs({ ...getDefaultValues(), cont_batching: false })).toEqual(['--port', '8080', '-nocb'])
   })
 
   it('emits -fa off when flash attention is turned off', () => {
-    expect(buildCliArgs({ ...getDefaultValues(), flash_attn: false })).toEqual(['-fa', 'off'])
+    expect(buildCliArgs({ ...getDefaultValues(), flash_attn: false })).toEqual(['-fa', 'off', '--port', '8080'])
   })
 
   it('emits nothing when they stay on, and shows the off flags in the CLI preview', () => {
-    expect(buildCliArgs({ ...getDefaultValues(), flash_attn: true, cont_batching: true })).toEqual([])
-    expect(buildCliPreview('llama-server', { ...getDefaultValues(), cont_batching: false })).toBe('llama-server -nocb')
+    expect(buildCliArgs({ ...getDefaultValues(), flash_attn: true, cont_batching: true })).toEqual(['--port', '8080'])
+    expect(buildCliPreview('llama-server', { ...getDefaultValues(), cont_batching: false })).toBe('llama-server --port 8080 -nocb')
   })
 
   it('every default-true boolean declares how to turn it off', () => {

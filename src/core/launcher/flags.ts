@@ -161,7 +161,10 @@ export const FLAG_CATALOG: FlagDef[] = [
   {
     key: 'port', flag: '--port', label: 'Port', group: 'server',
     description: 'Listen port for the HTTP server',
-    type: 'number', default: 8080, min: 1024, max: 65535, step: 1
+    type: 'number', default: 8080, min: 1024, max: 65535, step: 1,
+    // Without --port, llama-server listens on another port (9931 on b11819), so the
+    // launcher must always say which one it means.
+    alwaysEmit: true
   },
   {
     key: 'n_parallel', flag: '-np', label: 'Parallel Slots', group: 'server',
@@ -215,7 +218,8 @@ export function buildCliArgs(values: Record<string, any>): string[] {
 
   for (const def of FLAG_CATALOG) {
     const val = values[def.key]
-    if (val === undefined || val === def.default) continue
+    if (val === undefined) continue
+    if (val === def.default && !def.alwaysEmit) continue
 
     // Skip empty strings
     if (typeof val === 'string' && val.trim() === '') continue

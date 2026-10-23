@@ -3,10 +3,10 @@ import { buildCliArgs, getDefaultValues, FLAG_CATALOG } from './flags'
 import { estimateVram } from './vram'
 
 describe('Flag Builder', () => {
-  it('returns empty args when all values are default', () => {
+  it('returns only the always-emitted port when all values are default', () => {
     const defaults = getDefaultValues()
     const args = buildCliArgs(defaults)
-    expect(args).toEqual([])
+    expect(args).toEqual(['--port', '8080'])
   })
 
   it('emits boolean flags only when true and non-default', () => {

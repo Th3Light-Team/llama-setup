@@ -5,10 +5,17 @@ import { StatusPill } from '@/components/ui/status-pill'
 import { useLauncherStore, useBinariesStore } from '@/lib/stores'
 import { cn } from '@/lib/utils'
 import type { Profile } from '../../../core/launcher/types'
+import { RunSummary } from './RunSummary'
 
 interface RunTabProps {
   profile: Profile
 }
+
+type OutputView = 'summary' | 'console'
+const OUTPUT_VIEWS: { id: OutputView; label: string }[] = [
+  { id: 'summary', label: 'Summary' },
+  { id: 'console', label: 'Console' },
+]
 
 export function RunTab({ profile }: RunTabProps) {
   const {
@@ -20,6 +27,8 @@ export function RunTab({ profile }: RunTabProps) {
   const logEndRef = useRef<HTMLDivElement>(null)
   const [currentRunId, setCurrentRunId] = useState<string | null>(null)
   const [defaultEnginePath, setDefaultEnginePath] = useState<string | null>(null)
+  const [view, setView] = useState<OutputView>('summary')
+  const [focusLine, setFocusLine] = useState<number | null>(null)
   // satisfy noUnusedLocals — `profile` is held so callers can key us by profile id
   void profile
 
@@ -42,9 +51,25 @@ export function RunTab({ profile }: RunTabProps) {
     }
   }, [serverStatus.state])
 
+  // Follow the tail in the console, unless the user jumped to a specific line.
   useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [logs])
+    if (view === 'console' && focusLine === null) logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [logs, view, focusLine])
+
+  useEffect(() => {
+    if (view !== 'console' || focusLine === null) return
+    document.getElementById(`log-line-${focusLine}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [view, focusLine])
+
+  function jumpToLine(index: number) {
+    setFocusLine(index)
+    setView('console')
+  }
+
+  function switchView(next: OutputView) {
+    setView(next)
+    if (next === 'summary') setFocusLine(null)
+  }
 
   const installPath = defaultEnginePath ?? installed[0]?.path ?? null
 
@@ -67,7 +92,7 @@ export function RunTab({ profile }: RunTabProps) {
       .filter(([k, v]) => {
         const def = flagCatalog.find(f => f.key === k)
         if (!def) return false
-        if (v === def.default) return false
+        if (v === def.default && !def.alwaysEmit) return false
         if (typeof v === 'string' && v.trim() === '') return false
         return true
       })
@@ -153,28 +178,62 @@ export function RunTab({ profile }: RunTabProps) {
         </pre>
       </div>
 
-      {/* Terminal */}
+      {/* Output: Summary (friendly) or Console (raw) */}
       <div data-tour="launch-output" className="flex-1 flex flex-col min-h-0 rounded-lg border border-border overflow-hidden">
-        <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30 shrink-0">
+        <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border bg-muted/30 shrink-0">
           <span className="text-xs font-semibold flex items-center gap-1.5">
             <Terminal className="h-3.5 w-3.5" aria-hidden /> Server output
           </span>
-          <Button variant="ghost" size="sm" className="h-5 text-[10px] px-1.5" onClick={clearLogs}>
-            Clear
-          </Button>
+          <div className="flex items-center gap-2">
+            {view === 'console' && (
+              <Button variant="ghost" size="sm" className="h-5 text-[10px] px-1.5" onClick={clearLogs}>
+                Clear
+              </Button>
+            )}
+            <div role="tablist" aria-label="Output view" className="inline-flex p-0.5 rounded-md bg-muted border border-border">
+              {OUTPUT_VIEWS.map(v => (
+                <button
+                  key={v.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={view === v.id}
+                  onClick={() => switchView(v.id)}
+                  className={cn(
+                    'px-2.5 py-0.5 text-[11px] rounded-[5px] transition-colors',
+                    view === v.id ? 'bg-card text-foreground font-medium shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="flex-1 overflow-y-auto bg-[oklch(0.12_0_0)] p-3 font-mono text-[11px] text-[oklch(0.72_0.13_150)] leading-relaxed">
-          {logs.length === 0 ? (
-            <span className="text-muted-foreground opacity-50">Server output will appear here…</span>
-          ) : (
-            logs.map((line, i) => (
-              <div key={i} className={cn('whitespace-pre-wrap break-all', line.toLowerCase().includes('error') && 'text-status-error')}>
-                {line}
-              </div>
-            ))
-          )}
-          <div ref={logEndRef} />
-        </div>
+
+        {view === 'summary' ? (
+          <RunSummary logs={logs} status={serverStatus} onViewLine={jumpToLine} />
+        ) : (
+          <div className="flex-1 overflow-y-auto bg-[oklch(0.12_0_0)] p-3 font-mono text-[11px] text-[oklch(0.72_0.13_150)] leading-relaxed">
+            {logs.length === 0 ? (
+              <span className="text-muted-foreground opacity-50">Server output will appear here…</span>
+            ) : (
+              logs.map((line, i) => (
+                <div
+                  key={i}
+                  id={`log-line-${i}`}
+                  className={cn(
+                    'whitespace-pre-wrap break-all',
+                    line.toLowerCase().includes('error') && 'text-status-error',
+                    i === focusLine && 'bg-brand/20 rounded-sm'
+                  )}
+                >
+                  {line}
+                </div>
+              ))
+            )}
+            <div ref={logEndRef} />
+          </div>
+        )}
       </div>
     </div>
   )

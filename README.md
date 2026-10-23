@@ -54,9 +54,12 @@ Other scripts:
 
 | Command | What it does |
 |---|---|
+| `npm run dev:sandbox` | Dev run against a throwaway home (`.dev-sandbox/`): skips the wizard, shows your real binaries and models (read-only sources) |
+| `npm run dev:zero` | Same, but wipes the sandbox first, so you get the true first-run experience |
+| `npm run test:dev` | Run the Vitest suite using Electron's Node, so `better-sqlite3` stays built for `npm run dev` |
 | `npm run build` | Compile main, preload and renderer into `out/` |
 | `npm run dist -- --linux` / `--win` | Package an installer into `release/` |
-| `npm test` | Run the Vitest suite |
+| `npm test` | Run the Vitest suite (rebuilds `better-sqlite3` for Node; `npm run dev` then needs `npm run rebuild:electron`) |
 | `npm run lint` | Run ESLint |
 
 ## Releasing

@@ -58,6 +58,7 @@ try {
       removeFolder: (folderPath: string) => ipcRenderer.invoke('library:removeFolder', folderPath),
     },
     app: {
+      getDevFlags: () => ipcRenderer.invoke('app:devFlags') as Promise<{ sandbox: boolean }>,
       getOnboardingState: () => ipcRenderer.invoke('app:getOnboardingState'),
       setOnboardingState: (state: any) => ipcRenderer.invoke('app:setOnboardingState', state),
       resetOnboarding: () => ipcRenderer.invoke('app:resetOnboarding'),

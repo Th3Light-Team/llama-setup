@@ -96,6 +96,7 @@ interface Window {
       onDone: (cb: (e: import('../core/downloads/types').DownloadDoneEvent) => void) => () => void
     }
     app: {
+      getDevFlags: () => Promise<{ sandbox: boolean }>
       getOnboardingState: () => Promise<any>
       setOnboardingState: (state: any) => Promise<void>
       resetOnboarding: () => Promise<void>

@@ -51,6 +51,7 @@ try {
     },
     library: {
       list: () => ipcRenderer.invoke('library:list'),
+      pickFile: () => ipcRenderer.invoke('library:pickFile'),
       folders: () => ipcRenderer.invoke('library:folders'),
       reveal: (filePath: string) => ipcRenderer.invoke('library:reveal', filePath),
       delete: (filePath: string) => ipcRenderer.invoke('library:delete', filePath),

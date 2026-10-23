@@ -1,4 +1,4 @@
-import { ipcMain, shell } from 'electron'
+import { dialog, ipcMain, shell } from 'electron'
 import { join, basename } from 'path'
 import { readdir, stat, readFile, rm } from 'fs/promises'
 import { existsSync } from 'fs'
@@ -113,6 +113,16 @@ async function scanLibrary(): Promise<LocalModel[]> {
 
 export function setupLibraryIPC() {
   ipcMain.handle('library:list', () => scanLibrary())
+
+  /** Native file picker for a GGUF that lives outside the configured folders. Returns null on cancel. */
+  ipcMain.handle('library:pickFile', async () => {
+    const result = await dialog.showOpenDialog({
+      title: 'Choose a GGUF model',
+      properties: ['openFile'],
+      filters: [{ name: 'GGUF models', extensions: ['gguf'] }],
+    })
+    return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0]
+  })
 
   /** Surfaces the configured folders so the Library UI can build its chip-bar. */
   ipcMain.handle('library:folders', () => {
